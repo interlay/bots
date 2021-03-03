@@ -15,7 +15,9 @@ const requestWaitingTime = MS_IN_AN_HOUR / REQUESTS_PER_HOUR;
 
 main()
     .then(() => {
-        console.log(`[${new Date().toLocaleString()}] Started the bot...`);
+        console.log(
+            `[${new Date().toLocaleString()}] Successfully started the bot...`
+        );
     })
     .catch((err) => {
         console.log(
@@ -54,7 +56,7 @@ async function requestIssue(polkaBtc: PolkaBTCAPI, requester: KeyringPair) {
         );
     } catch (e) {
         console.log(
-            `[${new Date().toLocaleString()}] Error making issue request`
+            `[${new Date().toLocaleString()}] Error making issue request: ${e}`
         );
     }
 }
@@ -88,7 +90,7 @@ async function callIssueAndRedeem(polkaBtc: PolkaBTCAPI, account: KeyringPair) {
 async function main() {
     const polkaBtcApi = await connectToParachain();
     let keyring = new Keyring({ type: "sr25519" });
-    console.log(`account: ${process.env.POLKABTC_BOT_ACCOUNT}`);
+    console.log(`Bot account: ${process.env.POLKABTC_BOT_ACCOUNT}`);
     let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
 
     polkaBtcApi.issue.setAccount(account);

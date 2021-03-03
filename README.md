@@ -21,7 +21,7 @@ yarn install
 And run the bot either using TS-Node:
 
 ```bash
-yarn run
+yarn live
 ```
 
 Or by compiling and running with standard Node:

@@ -9,7 +9,7 @@
     "scripts": {
         "build": "tsc -p tsconfig.json",
         "start": "node ./build/index.js",
-        "run": "ts-node src/index.ts"
+        "live": "ts-node src/index.ts"
     },
     "dependencies": {
         "@interlay/polkabtc": "^0.8.9",
