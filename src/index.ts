@@ -1,4 +1,9 @@
-import { btcToSat, createPolkabtcAPI, PolkaBTCAPI } from "@interlay/polkabtc";
+import {
+    btcToSat,
+    createPolkabtcAPI,
+    FaucetClient,
+    PolkaBTCAPI,
+} from "@interlay/polkabtc";
 import {
     BITCOIN_NETWORK,
     REQUESTS_PER_HOUR,
@@ -7,11 +12,13 @@ import {
     REDEEM_AMOUNT,
     REDEEM_ADDRESS,
     MS_IN_AN_HOUR,
+    FAUCET_URL,
 } from "./config";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
 
 const requestWaitingTime = MS_IN_AN_HOUR / REQUESTS_PER_HOUR;
+let keyring = new Keyring({ type: "sr25519" });
 
 main()
     .then(() => {
@@ -21,7 +28,7 @@ main()
     })
     .catch((err) => {
         console.log(
-            `[${new Date().toLocaleString()}] Error during bot startup: ${err}`
+            `[${new Date().toLocaleString()}] Error during bot operation: ${err}`
         );
     });
 
@@ -87,15 +94,32 @@ async function callIssueAndRedeem(polkaBtc: PolkaBTCAPI, account: KeyringPair) {
     await requestRedeem(polkaBtc);
 }
 
+async function floodFaucet(polkaBtc: PolkaBTCAPI, accountCount: number) {
+    let faucet = new FaucetClient(FAUCET_URL);
+    const promises = [];
+    for (let i = 0; i < accountCount; i++) {
+        const rand = Math.floor(Math.random() * 10000000);
+        const account = keyring.createFromUri(`//${rand}`);
+        console.log(`Generated ${account.address} from Uri //${rand}`);
+        promises.push(
+            faucet.fundAccount(
+                polkaBtc.api.createType("AccountId", account.address)
+            )
+        );
+    }
+    await Promise.all(promises);
+    console.log(`Successfully requested ${accountCount} times from faucet`);
+}
+
 async function main() {
     const polkaBtcApi = await connectToParachain();
-    let keyring = new Keyring({ type: "sr25519" });
     console.log(`Bot account: ${process.env.POLKABTC_BOT_ACCOUNT}`);
     let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
 
     polkaBtcApi.issue.setAccount(account);
     polkaBtcApi.redeem.setAccount(account);
 
+    // await floodFaucet(polkaBtcApi, 100);
     await callIssueAndRedeem(polkaBtcApi, account);
     setInterval(callIssueAndRedeem, requestWaitingTime, polkaBtcApi, account);
 }

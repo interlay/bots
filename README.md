@@ -1,4 +1,4 @@
-# Bridge Bot for Cross-Chain Bridges
+# Bot for Cross-Chain Bridges
 
 TypeScript utility to load test cross-chain systems based on XCLAIM (currently only targeting PolkaBTC).
 
