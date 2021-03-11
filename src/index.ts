@@ -13,9 +13,12 @@ import {
     REDEEM_ADDRESS,
     MS_IN_AN_HOUR,
     FAUCET_URL,
+    REDEEM_EXECUTION_MODE,
+    STATS_URL
 } from "./config";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
+import * as polkabtcStats from '@interlay/polkabtc-stats';
 
 const requestWaitingTime = MS_IN_AN_HOUR / REQUESTS_PER_HOUR;
 let keyring = new Keyring({ type: "sr25519" });
@@ -46,8 +49,7 @@ async function requestIssue(polkaBtc: PolkaBTCAPI, requester: KeyringPair) {
     );
     const balance = await polkaBtc.collateral.balanceDOT(requesterAccountId);
     console.log(
-        `[${new Date().toLocaleString()}] Bot balance (${
-            requester.address
+        `[${new Date().toLocaleString()}] Bot balance (${requester.address
         }): ${balance}`
     );
     const amountAsSatoshi = polkaBtc.api.createType(
@@ -111,6 +113,43 @@ async function floodFaucet(polkaBtc: PolkaBTCAPI, accountCount: number) {
     console.log(`Successfully requested ${accountCount} times from faucet`);
 }
 
+async function executeRedeems(polkaBtc: PolkaBTCAPI) {
+    const redeemPeriod = await polkaBtc.redeem.getRedeemPeriod();
+    const bestBtcBlock = await polkaBtc.btcCore.getLatestBlockHeight();
+    const statsApi = new polkabtcStats.StatsApi(new polkabtcStats.Configuration({ basePath: STATS_URL }));
+    const redeems = (await statsApi.getRedeems(0, Number.MAX_SAFE_INTEGER)).data;
+    const expiredRedeemsWithBtcTx = redeems.filter(
+        redeem =>
+            isRequestExpired(bestBtcBlock, redeemPeriod.toNumber(), Number(redeem.creation))
+            && !redeem.completed
+            && !redeem.cancelled
+            && redeem.btcTxId !== ""
+    )
+    for (let request of expiredRedeemsWithBtcTx) {
+        const merkleProof = await polkaBtc.btcCore.getMerkleProof(request.btcTxId);
+        const rawTx = await polkaBtc.btcCore.getRawTransaction(request.btcTxId);
+
+        const parsedRedeemId = polkaBtc.api.createType("H256", "0x" + request.id);
+        const parsedTxId = polkaBtc.api.createType(
+            "H256",
+            "0x" + Buffer.from(request.btcTxId, "hex").reverse().toString("hex")
+        );
+        const parsedMerkleProof = polkaBtc.api.createType("Bytes", "0x" + merkleProof);
+        const parsedRawTx = polkaBtc.api.createType("Bytes", "0x" + rawTx.toString());
+
+        try {
+            await polkaBtc.redeem.execute(parsedRedeemId, parsedTxId, parsedMerkleProof, parsedRawTx);
+            console.log(`Successfully executed redeem ${request.id}`);
+        } catch (error) {
+            console.log(`Failed to execute redeem ${request.id}: ${error.toString()}`);
+        }
+    }
+}
+
+function isRequestExpired(bestBlock: number, period: number, creationBlock: number) {
+    return (bestBlock - creationBlock) > period;
+}
+
 async function main() {
     const polkaBtcApi = await connectToParachain();
     console.log(`Bot account: ${process.env.POLKABTC_BOT_ACCOUNT}`);
@@ -120,6 +159,12 @@ async function main() {
     polkaBtcApi.redeem.setAccount(account);
 
     // await floodFaucet(polkaBtcApi, 100);
-    await callIssueAndRedeem(polkaBtcApi, account);
-    setInterval(callIssueAndRedeem, requestWaitingTime, polkaBtcApi, account);
+    if (REDEEM_EXECUTION_MODE) {
+        await executeRedeems(polkaBtcApi);
+        setInterval(executeRedeems, requestWaitingTime, polkaBtcApi);
+    } else {
+        await callIssueAndRedeem(polkaBtcApi, account);
+        setInterval(callIssueAndRedeem, requestWaitingTime, polkaBtcApi, account);
+    }
+
 }
