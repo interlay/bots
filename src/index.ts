@@ -135,7 +135,7 @@ async function executeRedeems(polkaBtc: PolkaBTCAPI) {
         );
 
         const parsedMerkleProof = polkaBtc.api.createType("Bytes", "0x" + merkleProof);
-        const parsedRawTx = polkaBtc.api.createType("Bytes", rawTx);
+        const parsedRawTx = polkaBtc.api.createType("Bytes", "0x" + rawTx.toString("hex"));
 
         try {
             await polkaBtc.redeem.execute(parsedRedeemId, parsedTxId, parsedMerkleProof, parsedRawTx);
