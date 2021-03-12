@@ -123,16 +123,19 @@ async function executeRedeems(polkaBtc: PolkaBTCAPI) {
             && redeem.btcTxId !== ""
     )
     for (let request of expiredRedeemsWithBtcTx) {
-        const merkleProof = await polkaBtc.btcCore.getMerkleProof(request.btcTxId);
-        const rawTx = await polkaBtc.btcCore.getRawTransaction(request.btcTxId);
+        const [merkleProof, rawTx] = await Promise.all([
+            polkaBtc.btcCore.getMerkleProof(request.btcTxId),
+            polkaBtc.btcCore.getRawTransaction(request.btcTxId)
+        ]);
 
         const parsedRedeemId = polkaBtc.api.createType("H256", "0x" + request.id);
         const parsedTxId = polkaBtc.api.createType(
             "H256",
             "0x" + Buffer.from(request.btcTxId, "hex").reverse().toString("hex")
         );
+
         const parsedMerkleProof = polkaBtc.api.createType("Bytes", "0x" + merkleProof);
-        const parsedRawTx = polkaBtc.api.createType("Bytes", "0x" + rawTx.toString());
+        const parsedRawTx = polkaBtc.api.createType("Bytes", "0x" + rawTx.toString("hex"));
 
         try {
             await polkaBtc.redeem.execute(parsedRedeemId, parsedTxId, parsedMerkleProof, parsedRawTx);
