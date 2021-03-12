@@ -114,14 +114,11 @@ async function floodFaucet(polkaBtc: PolkaBTCAPI, accountCount: number) {
 }
 
 async function executeRedeems(polkaBtc: PolkaBTCAPI) {
-    const redeemPeriod = await polkaBtc.redeem.getRedeemPeriod();
-    const bestBtcBlock = await polkaBtc.btcCore.getLatestBlockHeight();
     const statsApi = new polkabtcStats.StatsApi(new polkabtcStats.Configuration({ basePath: STATS_URL }));
     const redeems = (await statsApi.getRedeems(0, Number.MAX_SAFE_INTEGER)).data;
     const expiredRedeemsWithBtcTx = redeems.filter(
         redeem =>
-            isRequestExpired(bestBtcBlock, redeemPeriod.toNumber(), Number(redeem.creation))
-            && !redeem.completed
+            !redeem.completed
             && !redeem.cancelled
             && redeem.btcTxId !== ""
     )
@@ -144,10 +141,6 @@ async function executeRedeems(polkaBtc: PolkaBTCAPI) {
             console.log(`Failed to execute redeem ${request.id}: ${error.toString()}`);
         }
     }
-}
-
-function isRequestExpired(bestBlock: number, period: number, creationBlock: number) {
-    return (bestBlock - creationBlock) > period;
 }
 
 async function main() {
