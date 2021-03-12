@@ -116,32 +116,49 @@ async function floodFaucet(polkaBtc: PolkaBTCAPI, accountCount: number) {
 async function executeRedeems(polkaBtc: PolkaBTCAPI) {
     const statsApi = new polkabtcStats.StatsApi(new polkabtcStats.Configuration({ basePath: STATS_URL }));
     const redeems = (await statsApi.getRedeems(0, Number.MAX_SAFE_INTEGER)).data;
-    const expiredRedeemsWithBtcTx = redeems.filter(
-        redeem =>
-            !redeem.completed
-            && !redeem.cancelled
-            && redeem.btcTxId !== ""
-    )
+    const expiredRedeemsWithBtcTx = redeems; //.filter(
+        // redeem =>
+            // !redeem.completed
+            // redeem.btcTxId !== ""
+    // )
+    console.log(`Processing ${expiredRedeemsWithBtcTx.length + 1} requests`);
+    let i = 1;
+    let no_tx_id_found = 0;
     for (let request of expiredRedeemsWithBtcTx) {
-        const [merkleProof, rawTx] = await Promise.all([
-            polkaBtc.btcCore.getMerkleProof(request.btcTxId),
-            polkaBtc.btcCore.getRawTransaction(request.btcTxId)
-        ]);
-
-        const parsedRedeemId = polkaBtc.api.createType("H256", "0x" + request.id);
-        const parsedTxId = polkaBtc.api.createType(
-            "H256",
-            "0x" + Buffer.from(request.btcTxId, "hex").reverse().toString("hex")
-        );
-
-        const parsedMerkleProof = polkaBtc.api.createType("Bytes", "0x" + merkleProof);
-        const parsedRawTx = polkaBtc.api.createType("Bytes", "0x" + rawTx.toString("hex"));
-
+        console.log(`Processing request ${i}/${expiredRedeemsWithBtcTx.length + 1}`)
         try {
+            const parsedRedeemId = polkaBtc.api.createType("H256", "0x" + request.id);
+            const chain_request = await polkaBtc.redeem.getRequestById(parsedRedeemId);
+            if (chain_request.completed.isTrue || chain_request.cancelled.isTrue) {
+                continue;
+            }
+            let txId = "";
+            try {
+                txId = await polkaBtc.btcCore.getTxIdByOpReturn(request.id);
+            } catch {
+                no_tx_id_found = no_tx_id_found + 1;
+                console.log(`${no_tx_id_found} redeems without BTC transaction`)
+                continue;
+            }
+            const [merkleProof, rawTx] = await Promise.all([
+                polkaBtc.btcCore.getMerkleProof(txId),
+                polkaBtc.btcCore.getRawTransaction(txId)
+            ]);
+
+            const parsedTxId = polkaBtc.api.createType(
+                "H256",
+                "0x" + Buffer.from(txId, "hex").reverse().toString("hex")
+            );
+
+            const parsedMerkleProof = polkaBtc.api.createType("Bytes", "0x" + merkleProof);
+            const parsedRawTx = polkaBtc.api.createType("Bytes", "0x" + rawTx.toString("hex"));
+
             await polkaBtc.redeem.execute(parsedRedeemId, parsedTxId, parsedMerkleProof, parsedRawTx);
             console.log(`Successfully executed redeem ${request.id}`);
         } catch (error) {
             console.log(`Failed to execute redeem ${request.id}: ${error.toString()}`);
+        } finally {
+            i = i + 1;
         }
     }
 }
