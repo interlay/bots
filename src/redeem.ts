@@ -1,4 +1,4 @@
-import { PolkaBTCAPI, btcToSat, DefaultTransactionAPI } from "@interlay/polkabtc";
+import { PolkaBTCAPI, btcToSat, stripHexPrefix } from "@interlay/polkabtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import * as polkabtcStats from '@interlay/polkabtc-stats';
 import Big from "big.js";
@@ -115,17 +115,18 @@ export class Redeem {
             if (vault.issued_tokens.gte(amountToRedeem)) {
                 try {
                     console.log(`[${new Date().toLocaleString()}] Requesting ${amountToRedeem}/${vault.issued_tokens} from ${vault.id.toString()}`);
-                    await this.polkaBtc.redeem.request(
+                    const requestResult = await this.polkaBtc.redeem.request(
                         amountToRedeem,
                         process.env.REDEEM_ADDRESS as string,
                         vault.id
                     ).catch(error => { throw new Error(error) });
-                    // Wait at most one minute for the redeem to be executed
-                    await DefaultTransactionAPI.waitForEvent(
-                        this.polkaBtc.api,
-                        this.polkaBtc.api.events.redeem.ExecuteRedeem,
-                        60000
-                    ).catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
+                    const redeemRequestId = requestResult.id.toString();
+                    const opreturnData = stripHexPrefix(redeemRequestId);
+
+                    // Wait at most one minute to receive the BTC transaction with the
+                    // redeemed funds.
+                    await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, 2 * 60000, 5000)
+                        .catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
                     this.vaultHeartbeats.set(vault.id.toString(), Date.now());
                 } catch (error) {
                     console.log(`Error: ${error}`);

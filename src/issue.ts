@@ -63,7 +63,7 @@ export class Issue {
         );
         issue(
             this.polkaBtc.api,
-            this.polkaBtc.btcCore,
+            this.polkaBtc.electrsAPI,
             bitcoinCoreClient,
             requester,
             amount
