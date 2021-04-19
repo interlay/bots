@@ -5,6 +5,11 @@ export class Faucet {
     private keyring = new Keyring({ type: "sr25519" });
     constructor() { }
 
+    /** 
+     * Flood the PolkaBTC beta testnet faucet with funding requests, to load test it.
+     * @param polkaBtc An initialized PolkaBTCAPI object
+     * @param accountCount Number of accounts to request funding for (one request per account)
+    */
     async floodFaucet(polkaBtc: PolkaBTCAPI, accountCount: number) {
         if (!process.env.FAUCET_URL) {
             Promise.reject("FAUCET_URL not set in the environment");

@@ -63,10 +63,10 @@ async function main() {
     // await floodFaucet(polkaBtcApi, 100);
     if (REDEEM_EXECUTION_MODE) {
         await executeRedeems(account);
-        setInterval(executeRedeems, requestWaitingTime, polkaBtcApi);
+        setInterval(executeRedeems, requestWaitingTime, account);
     } else {
         await requestIssueAndRedeem(account);
-        setInterval(requestIssueAndRedeem, requestWaitingTime, polkaBtcApi, account);
+        setInterval(requestIssueAndRedeem, requestWaitingTime, account);
     }
 
 }

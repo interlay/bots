@@ -95,6 +95,7 @@ export class Redeem {
     }
 
     async issueIfNeeded(vaultCount: number, account: KeyringPair) {
+        console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
         const accountId = this.polkaBtc.api.createType("AccountId", account.address);
         const minimumBalanceForHeartbeat = await this.getMinimumBalanceForHeartbeat(vaultCount);
         const redeemablePolkaSATBalance = new BN(btcToSat((await this.polkaBtc.treasury.balance(accountId)).toString()));
@@ -103,6 +104,18 @@ export class Redeem {
         }
     }
 
+    /**
+     * A heartbeat redeem is a redeem request made periodically to each vault that issued
+     * at least the redeem dust amount of tokens. This request is used to determine
+     * which vaults are still operating. This function is not stateless in that it
+     * updates the `vaultHeartbeats` map each time it is run. However, a redeem request
+     * is sent to each vault with redeemable capacity, regardless of their previous 
+     * uptime.
+     * In case the `account` parameter does not have enough tokens to perform 
+     * heartbeat redeems, it will issue enough to redeem once from each registered vault.
+     * 
+     * @param account A KeyringPair object used for signing issue and redeem requests
+     */
     async performHeartbeatRedeems(account: KeyringPair): Promise<void> {
         if (!process.env.REDEEM_ADDRESS) {
             Promise.reject("Redeem Bitcoin address not set in the environment");
@@ -125,7 +138,7 @@ export class Redeem {
 
                     // Wait at most one minute to receive the BTC transaction with the
                     // redeemed funds.
-                    await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, 2 * 60000, 5000)
+                    await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, 60000, 5000)
                         .catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
                     this.vaultHeartbeats.set(vault.id.toString(), Date.now());
                 } catch (error) {
@@ -136,6 +149,12 @@ export class Redeem {
         }
     }
 
+    /**
+     * A vault is considered alive if it successfully fulfilled a redeem
+     * requested by this bot within the last hour.
+     * @returns An array of [vault_id, last_active_date] tuples, where the 
+     * `last_active_date` is measured in milliseconds since the Unix epoch.
+     */
     async getAliveVaults(): Promise<[string, number][]> {
         const offlineThreshold = new Date(Date.now() - MS_IN_AN_HOUR);
         const aliveVaults: [string, number][] = [];
