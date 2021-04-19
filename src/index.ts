@@ -56,8 +56,8 @@ async function main() {
     const polkaBtcApi = await connectToParachain();
     issue = new Issue(polkaBtcApi);
     redeem = new Redeem(polkaBtcApi);
-    console.log(`Bot account: ${process.env.POLKABTC_BOT_ACCOUNT}`);
     let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
+    console.log(`Bot account: ${account.address}`);
     polkaBtcApi.setAccount(account);
 
     // await floodFaucet(polkaBtcApi, 100);

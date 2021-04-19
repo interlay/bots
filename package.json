@@ -12,7 +12,7 @@
         "live": "ts-node src/index.ts"
     },
     "dependencies": {
-        "@interlay/polkabtc": "0.14.0",
+        "@interlay/polkabtc": "0.14.1",
         "@interlay/polkabtc-stats": "0.1.13",
         "@polkadot/api": "^3.11.1",
         "@types/node": "^14.14.31",

@@ -61,7 +61,7 @@ export class Issue {
             process.env.BITCOIN_RPC_PORT as string,
             process.env.BITCOIN_RPC_WALLET as string,
         );
-        issue(
+        await issue(
             this.polkaBtc.api,
             this.polkaBtc.electrsAPI,
             bitcoinCoreClient,

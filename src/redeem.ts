@@ -99,7 +99,7 @@ export class Redeem {
         const minimumBalanceForHeartbeat = await this.getMinimumBalanceForHeartbeat(vaultCount);
         const redeemablePolkaSATBalance = new BN(btcToSat((await this.polkaBtc.treasury.balance(accountId)).toString()));
         if (redeemablePolkaSATBalance.lte(minimumBalanceForHeartbeat)) {
-            this.issue.requestAndExecuteIssue(account, this.issueTopUpAmount);
+            await this.issue.requestAndExecuteIssue(account, this.issueTopUpAmount);
         }
     }
 
