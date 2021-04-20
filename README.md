@@ -6,11 +6,7 @@ TypeScript utility to load test cross-chain systems based on XCLAIM (currently o
 
 The bot configuration can be modified in `src/config.ts`.
 
-The mnemonic of a funded Polkadot account needs to be set as an environment variable:
-
-```bash
-export POLKABTC_BOT_ACCOUNT="<<YOUR MNEMONIC HERE>>"
-```
+There are several environment variables which need to be set to run the bot. Edit `.env.local` and/or `.env.testnet`. You can then run `source .env.local` or `source .env.testnet` to set these variables in the environment.
 
 Install the dependencies:
 
