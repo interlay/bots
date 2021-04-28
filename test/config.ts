@@ -1,0 +1,1 @@
+export const DEFAULT_PARACHAIN_ENDPOINT = "ws://127.0.0.1:9944";

@@ -37,13 +37,33 @@ async function requestIssueAndRedeem(account: KeyringPair) {
     await redeem.request();
 }
 
-async function executeRedeems(account: KeyringPair) {
+async function executeRedeems(account: KeyringPair, redeemAddress: string) {
     try {
         await redeem.executePendingRedeems();
-        await redeem.performHeartbeatRedeems(account);
-        const aliveVaults = await redeem.getAliveVaults();
-        console.log("Alive vaults:");
-        aliveVaults.forEach(vault => console.log(`${vault[0]}, at ${new Date(vault[1]).toLocaleString()}`))
+        if (
+            !process.env.BITCOIN_RPC_HOST
+            || !process.env.BITCOIN_RPC_PORT
+            || !process.env.BITCOIN_RPC_USER
+            || !process.env.BITCOIN_RPC_PASS
+            || !process.env.BITCOIN_NETWORK
+            || !process.env.BITCOIN_RPC_WALLET
+        ) {
+            console.log("Bitcoin Node environment variables not set. Not Performing heartbeat redeems.");
+        } else {
+            await redeem.performHeartbeatRedeems(
+                account,
+                redeemAddress,
+                process.env.BITCOIN_RPC_HOST,
+                process.env.BITCOIN_RPC_PORT,
+                process.env.BITCOIN_RPC_USER,
+                process.env.BITCOIN_RPC_PASS,
+                process.env.BITCOIN_NETWORK,
+                process.env.BITCOIN_RPC_WALLET
+            );
+            const aliveVaults = await redeem.getAliveVaults();
+            console.log("Alive vaults:");
+            aliveVaults.forEach(vault => console.log(`${vault[0]}, at ${new Date(vault[1]).toLocaleString()}`))
+        }
     } catch (error) {
         console.log(error);
     }
@@ -62,7 +82,10 @@ async function main() {
 
     // await floodFaucet(polkaBtcApi, 100);
     if (REDEEM_EXECUTION_MODE) {
-        await executeRedeems(account);
+        if (!process.env.REDEEM_ADDRESS) {
+            Promise.reject("Redeem Bitcoin address not set in the environment");
+        }
+        await executeRedeems(account, process.env.REDEEM_ADDRESS as string);
         setInterval(executeRedeems, requestWaitingTime, account);
     } else {
         await requestIssueAndRedeem(account);

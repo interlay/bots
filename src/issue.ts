@@ -42,24 +42,23 @@ export class Issue {
         }
     }
 
-    async requestAndExecuteIssue(requester: KeyringPair, amount: Big): Promise<boolean> {
-        if (
-            !process.env.BITCOIN_RPC_HOST
-            || !process.env.BITCOIN_RPC_PORT
-            || !process.env.BITCOIN_RPC_USER
-            || !process.env.BITCOIN_RPC_PASS
-            || !process.env.BITCOIN_NETWORK
-            || !process.env.BITCOIN_RPC_WALLET
-        ) {
-            Promise.reject("Bitcoin Node environment variables not set");
-        }
+    async requestAndExecuteIssue(
+        requester: KeyringPair,
+        amount: Big,
+        btcHost: string,
+        btcRpcPort: string,
+        btcRpcUSer: string,
+        btcRpcPass: string,
+        btcNetwork: string,
+        btcRpcWallet: string
+    ): Promise<boolean> {
         const bitcoinCoreClient = new BitcoinCoreClient(
-            process.env.BITCOIN_NETWORK as string,
-            process.env.BITCOIN_RPC_HOST as string,
-            process.env.BITCOIN_RPC_USER as string,
-            process.env.BITCOIN_RPC_PASS as string,
-            process.env.BITCOIN_RPC_PORT as string,
-            process.env.BITCOIN_RPC_WALLET as string,
+            btcHost,
+            btcRpcPort,
+            btcRpcUSer,
+            btcRpcPass,
+            btcNetwork,
+            btcRpcWallet
         );
         await issue(
             this.polkaBtc.api,
