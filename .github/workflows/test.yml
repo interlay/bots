@@ -1,0 +1,17 @@
+name: test
+
+on: push
+
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v2
+            - name: setup node
+              uses: actions/setup-node@v1
+              with:
+                  node-version: "14.x"
+            - name: Run and set up the parachain, oracle, staked relayer and vault
+              run: docker-compose up -d
+            - run: yarn install
+            - run: yarn test

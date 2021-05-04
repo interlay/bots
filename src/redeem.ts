@@ -94,13 +94,31 @@ export class Redeem {
         }
     }
 
-    async issueIfNeeded(vaultCount: number, account: KeyringPair) {
-        console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
+    async issueIfNeeded(
+        vaultCount: number,
+        account: KeyringPair,
+        btcHost: string,
+        btcRpcPort: string,
+        btcRpcUSer: string,
+        btcRpcPass: string,
+        btcNetwork: string,
+        btcRpcWallet: string
+    ) {
         const accountId = this.polkaBtc.api.createType("AccountId", account.address);
         const minimumBalanceForHeartbeat = await this.getMinimumBalanceForHeartbeat(vaultCount);
         const redeemablePolkaSATBalance = new BN(btcToSat((await this.polkaBtc.treasury.balance(accountId)).toString()));
         if (redeemablePolkaSATBalance.lte(minimumBalanceForHeartbeat)) {
-            await this.issue.requestAndExecuteIssue(account, this.issueTopUpAmount);
+            console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
+            await this.issue.requestAndExecuteIssue(
+                account,
+                this.issueTopUpAmount,
+                btcHost,
+                btcRpcPort,
+                btcRpcUSer,
+                btcRpcPass,
+                btcNetwork,
+                btcRpcWallet
+            );
         }
     }
 
@@ -116,27 +134,42 @@ export class Redeem {
      * 
      * @param account A KeyringPair object used for signing issue and redeem requests
      */
-    async performHeartbeatRedeems(account: KeyringPair): Promise<void> {
-        if (!process.env.REDEEM_ADDRESS) {
-            Promise.reject("Redeem Bitcoin address not set in the environment");
-        }
+    async performHeartbeatRedeems(
+        account: KeyringPair,
+        redeemAddress: string,
+        btcHost: string,
+        btcRpcPort: string,
+        btcRpcUSer: string,
+        btcRpcPass: string,
+        btcNetwork: string,
+        btcRpcWallet: string
+    ): Promise<void> {
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
         const vaults = await this.polkaBtc.vaults.list();
-        await this.issueIfNeeded(vaults.length, account);
+        await this.issueIfNeeded(
+            vaults.length,
+            account,
+            btcHost,
+            btcRpcPort,
+            btcRpcUSer,
+            btcRpcPass,
+            btcNetwork,
+            btcRpcWallet
+        );
         const amountToRedeem = this.polkaBtc.api.createType("Balance", (await this.getMinRedeemableAmount()).toString());
-        for (const vault of vaults) {
+        for (const vault of vaults.reverse()) {
             if (vault.issued_tokens.gte(amountToRedeem)) {
                 try {
-                    console.log(`[${new Date().toLocaleString()}] Requesting ${amountToRedeem}/${vault.issued_tokens} from ${vault.id.toString()}`);
+                    console.log(`[${new Date().toLocaleString()}] Requesting ${amountToRedeem} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
                     const requestResult = await this.polkaBtc.redeem.request(
                         amountToRedeem,
-                        process.env.REDEEM_ADDRESS as string,
+                        redeemAddress,
                         vault.id
                     ).catch(error => { throw new Error(error) });
                     const redeemRequestId = requestResult.id.toString();
                     const opreturnData = stripHexPrefix(redeemRequestId);
 
-                    // Wait at most one minute to receive the BTC transaction with the
+                    // Wait at most two minutes to receive the BTC transaction with the
                     // redeemed funds.
                     await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, 60000, 5000)
                         .catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
