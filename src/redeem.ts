@@ -104,11 +104,11 @@ export class Redeem {
         btcNetwork: string,
         btcRpcWallet: string
     ) {
-        console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
         const accountId = this.polkaBtc.api.createType("AccountId", account.address);
         const minimumBalanceForHeartbeat = await this.getMinimumBalanceForHeartbeat(vaultCount);
         const redeemablePolkaSATBalance = new BN(btcToSat((await this.polkaBtc.treasury.balance(accountId)).toString()));
         if (redeemablePolkaSATBalance.lte(minimumBalanceForHeartbeat)) {
+            console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
             await this.issue.requestAndExecuteIssue(
                 account,
                 this.issueTopUpAmount,
@@ -160,7 +160,7 @@ export class Redeem {
         for (const vault of vaults.reverse()) {
             if (vault.issued_tokens.gte(amountToRedeem)) {
                 try {
-                    console.log(`[${new Date().toLocaleString()}] Requesting ${amountToRedeem}/${vault.issued_tokens} from ${vault.id.toString()}`);
+                    console.log(`[${new Date().toLocaleString()}] Requesting ${amountToRedeem} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
                     const requestResult = await this.polkaBtc.redeem.request(
                         amountToRedeem,
                         redeemAddress,

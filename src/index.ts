@@ -40,7 +40,7 @@ async function requestIssueAndRedeem(account: KeyringPair) {
 
 async function executeRedeems(account: KeyringPair, redeemAddress: string) {
     try {
-        await redeem.executePendingRedeems();
+        // await redeem.executePendingRedeems();
         if (
             !process.env.BITCOIN_RPC_HOST
             || !process.env.BITCOIN_RPC_PORT
@@ -80,7 +80,6 @@ async function main() {
     console.log(`Bot account: ${account.address}`);
     polkaBtcApi.setAccount(account);
     
-    // await floodFaucet(polkaBtcApi, 100);
     if (REDEEM_EXECUTION_MODE) {
         if (!process.env.REDEEM_ADDRESS || !process.env.ISSUE_TOP_UP_AMOUNT) {
             Promise.reject("Redeem Bitcoin address not set in the environment");
