@@ -4,6 +4,7 @@ import {
 } from "@interlay/polkabtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
+import Big from "big.js";
 
 import {
     REQUESTS_PER_HOUR,
@@ -75,16 +76,16 @@ async function main() {
     }
     const polkaBtcApi = await connectToParachain();
     issue = new Issue(polkaBtcApi);
-    redeem = new Redeem(polkaBtcApi);
     let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
     console.log(`Bot account: ${account.address}`);
     polkaBtcApi.setAccount(account);
-
+    
     // await floodFaucet(polkaBtcApi, 100);
     if (REDEEM_EXECUTION_MODE) {
-        if (!process.env.REDEEM_ADDRESS) {
+        if (!process.env.REDEEM_ADDRESS || !process.env.ISSUE_TOP_UP_AMOUNT) {
             Promise.reject("Redeem Bitcoin address not set in the environment");
         }
+        redeem = new Redeem(polkaBtcApi, new Big(process.env.ISSUE_TOP_UP_AMOUNT as string));
         await executeRedeems(account, process.env.REDEEM_ADDRESS as string);
         setInterval(executeRedeems, requestWaitingTime, account);
     } else {

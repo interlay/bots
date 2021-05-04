@@ -47,17 +47,17 @@ export class Issue {
         amount: Big,
         btcHost: string,
         btcRpcPort: string,
-        btcRpcUSer: string,
+        btcRpcUser: string,
         btcRpcPass: string,
         btcNetwork: string,
         btcRpcWallet: string
     ): Promise<boolean> {
         const bitcoinCoreClient = new BitcoinCoreClient(
-            btcHost,
-            btcRpcPort,
-            btcRpcUSer,
-            btcRpcPass,
             btcNetwork,
+            btcHost,
+            btcRpcUser,
+            btcRpcPass,
+            btcRpcPort,
             btcRpcWallet
         );
         await issue(
