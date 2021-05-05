@@ -6,20 +6,49 @@ import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
 import Big from "big.js";
 
-import {
-    REQUESTS_PER_HOUR,
-    REDEEM_EXECUTION_MODE,
-} from "./config";
 import { MS_IN_AN_HOUR } from "./consts";
 import { Issue } from "./issue";
 import { Redeem } from "./redeem";
 
-const requestWaitingTime = MS_IN_AN_HOUR / REQUESTS_PER_HOUR;
-let keyring = new Keyring({ type: "sr25519" });
-let issue: Issue;
-let redeem: Redeem;
+const yargs = require('yargs/yargs')
+const { hideBin } = require('yargs/helpers')
+const argv = yargs(hideBin(process.argv))
+    .option('heartbeats', {
+        type: 'boolean',
+        description: 'Try to issue and redeem slightly more than the redeem dust value with every registered vault. Mutually exclusive with the `execute-pending-redeems` flag.',
+        default: true
+    })
+    .option('per-hour', {
+        type: 'number',
+        description: 'Frequency of issuing and reddeming with each vault in the system. Example: 0.5 => issue and redeem every two hours.',
+        default: 1 / 3
+    })
+    .option('execute-pending-redeems', {
+        type: 'boolean',
+        description: 'Try to execute redeem requests whose BTC payment has already been made. Mutually exclusive with the `heartbeats` flag.',
+        default: false
+    })
+    .argv
 
-main()
+enum InputFlag {
+    heartbeats,
+    executePendingRedeems
+} 
+
+function getRequestWaitingTime(requestsPerHour: number): number {
+    return MS_IN_AN_HOUR / requestsPerHour;
+}
+
+function argsToInputFlag(argv: any): [InputFlag, number] {
+    if(argv.executePendingRedeems) {
+        return [InputFlag.executePendingRedeems, getRequestWaitingTime(argv.perHour)];
+    }
+    return [InputFlag.heartbeats, getRequestWaitingTime(argv.perHour)];
+}
+
+let keyring = new Keyring({ type: "sr25519" });
+
+main(...argsToInputFlag(argv))
     .catch((err) => {
         console.log(
             `[${new Date().toLocaleString()}] Error during bot operation: ${err}`
@@ -33,14 +62,8 @@ function connectToParachain(): Promise<PolkaBTCAPI> {
     return createPolkabtcAPI(process.env.PARACHAIN_URL as string, process.env.BITCOIN_NETWORK);
 }
 
-async function requestIssueAndRedeem(account: KeyringPair) {
-    await issue.request(account);
-    await redeem.request();
-}
-
-async function executeRedeems(account: KeyringPair, redeemAddress: string) {
+async function heartbeats(polkaBtcApi: PolkaBTCAPI, account: KeyringPair, redeemAddress: string): Promise<void> {
     try {
-        // await redeem.executePendingRedeems();
         if (
             !process.env.BITCOIN_RPC_HOST
             || !process.env.BITCOIN_RPC_PORT
@@ -48,9 +71,22 @@ async function executeRedeems(account: KeyringPair, redeemAddress: string) {
             || !process.env.BITCOIN_RPC_PASS
             || !process.env.BITCOIN_NETWORK
             || !process.env.BITCOIN_RPC_WALLET
+            || !process.env.REDEEM_ADDRESS
+            || !process.env.ISSUE_TOP_UP_AMOUNT
         ) {
-            console.log("Bitcoin Node environment variables not set. Not Performing heartbeat redeems.");
+            console.log("Bitcoin Node environment variables not set. Not performing issue and redeem heartbeats.");
         } else {
+            const issue = new Issue(polkaBtcApi);
+            await issue.performHeartbeatIssues(
+                account,
+                process.env.BITCOIN_RPC_HOST,
+                process.env.BITCOIN_RPC_PORT,
+                process.env.BITCOIN_RPC_USER,
+                process.env.BITCOIN_RPC_PASS,
+                process.env.BITCOIN_NETWORK,
+                process.env.BITCOIN_RPC_WALLET
+            );
+            const redeem = new Redeem(polkaBtcApi, new Big(process.env.ISSUE_TOP_UP_AMOUNT as string));
             await redeem.performHeartbeatRedeems(
                 account,
                 redeemAddress,
@@ -62,7 +98,7 @@ async function executeRedeems(account: KeyringPair, redeemAddress: string) {
                 process.env.BITCOIN_RPC_WALLET
             );
             const aliveVaults = await redeem.getAliveVaults();
-            console.log("Alive vaults:");
+            console.log("Vault who redeemed within the last 12 hours:");
             aliveVaults.forEach(vault => console.log(`${vault[0]}, at ${new Date(vault[1]).toLocaleString()}`))
         }
     } catch (error) {
@@ -70,26 +106,30 @@ async function executeRedeems(account: KeyringPair, redeemAddress: string) {
     }
 }
 
-async function main() {
+async function main(inputFlag: InputFlag, requestWaitingTime: number) {
     if (!process.env.POLKABTC_BOT_ACCOUNT) {
         Promise.reject("Bot account mnemonic not set in the environment");
     }
     const polkaBtcApi = await connectToParachain();
-    issue = new Issue(polkaBtcApi);
     let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
     console.log(`Bot account: ${account.address}`);
+    console.log(`Waiting time between bot runs: ${requestWaitingTime / (60 * 60 * 1000)} hours`);
     polkaBtcApi.setAccount(account);
     
-    if (REDEEM_EXECUTION_MODE) {
-        if (!process.env.REDEEM_ADDRESS || !process.env.ISSUE_TOP_UP_AMOUNT) {
-            Promise.reject("Redeem Bitcoin address not set in the environment");
+    switch(inputFlag) {
+        case(InputFlag.executePendingRedeems): {
+            if (!process.env.REDEEM_ADDRESS) {
+                Promise.reject("Redeem Bitcoin address not set in the environment");
+            }
+            const redeem = new Redeem(polkaBtcApi);
+            await redeem.executePendingRedeems();
+            break;
         }
-        redeem = new Redeem(polkaBtcApi, new Big(process.env.ISSUE_TOP_UP_AMOUNT as string));
-        await executeRedeems(account, process.env.REDEEM_ADDRESS as string);
-        setInterval(executeRedeems, requestWaitingTime, account);
-    } else {
-        await requestIssueAndRedeem(account);
-        setInterval(requestIssueAndRedeem, requestWaitingTime, account);
+        case(InputFlag.heartbeats): {
+            await heartbeats(polkaBtcApi, account, process.env.REDEEM_ADDRESS as string);
+            setInterval(heartbeats, requestWaitingTime, account);
+            break;
+        }
     }
 
 }
