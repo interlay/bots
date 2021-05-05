@@ -18,10 +18,10 @@ const argv = yargs(hideBin(process.argv))
         description: 'Try to issue and redeem slightly more than the redeem dust value with every registered vault. Mutually exclusive with the `execute-pending-redeems` flag.',
         default: true
     })
-    .option('per-hour', {
+    .option('wait-interval', {
         type: 'number',
-        description: 'Frequency of issuing and reddeming with each vault in the system. Example: 0.5 => issue and redeem every two hours.',
-        default: 1 / 8
+        description: 'Delay between rounds of issuing and reddeming with each vault in the system. Example: 2 => issue and redeem every two hours.',
+        default: 8
     })
     .option('execute-pending-redeems', {
         type: 'boolean',
@@ -33,22 +33,18 @@ const argv = yargs(hideBin(process.argv))
 enum InputFlag {
     heartbeats,
     executePendingRedeems
-} 
-
-function getRequestWaitingTime(requestsPerHour: number): number {
-    return MS_IN_AN_HOUR / requestsPerHour;
 }
 
-function argsToInputFlag(argv: any): [InputFlag, number] {
+function parseArgs(argv: any): [InputFlag, number] {
     if(argv.executePendingRedeems) {
-        return [InputFlag.executePendingRedeems, getRequestWaitingTime(argv.perHour)];
+        return [InputFlag.executePendingRedeems, argv.waitInterval * MS_IN_AN_HOUR];
     }
-    return [InputFlag.heartbeats, getRequestWaitingTime(argv.perHour)];
+    return [InputFlag.heartbeats, argv.waitInterval * MS_IN_AN_HOUR];
 }
 
 let keyring = new Keyring({ type: "sr25519" });
 
-main(...argsToInputFlag(argv))
+main(...parseArgs(argv))
     .catch((err) => {
         console.log(
             `[${new Date().toLocaleString()}] Error during bot operation: ${err}`
@@ -98,7 +94,7 @@ async function heartbeats(polkaBtcApi: PolkaBTCAPI, account: KeyringPair, redeem
                 process.env.BITCOIN_RPC_WALLET
             );
             const aliveVaults = await redeem.getAliveVaults();
-            console.log("Vault who redeemed within the last 12 hours:");
+            console.log("Vaults that redeemed within the last 12 hours:");
             aliveVaults.forEach(vault => console.log(`${vault[0]}, at ${new Date(vault[1]).toLocaleString()}`))
         }
     } catch (error) {

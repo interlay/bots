@@ -2,9 +2,10 @@ import { PolkaBTCAPI, btcToSat, issue, BitcoinCoreClient, satToBTC } from "@inte
 import { KeyringPair } from "@polkadot/keyring/types";
 import Big from "big.js";
 import BN from "bn.js";
+import _ from 'underscore';
 
-import { MS_IN_AN_HOUR, LOAD_TEST_ISSUE_AMOUNT } from "./consts";
-import { shuffleArray } from "./utils";
+import { LOAD_TEST_ISSUE_AMOUNT } from "./consts";
+import { sleep, waitForEmptyMempool } from "./utils";
 
 export class Issue {
     polkaBtc: PolkaBTCAPI;
@@ -48,22 +49,10 @@ export class Issue {
     async requestAndExecuteIssue(
         requester: KeyringPair,
         amount: Big,
-        btcHost: string,
-        btcRpcPort: string,
-        btcRpcUser: string,
-        btcRpcPass: string,
+        bitcoinCoreClient: BitcoinCoreClient,
         btcNetwork: string,
-        btcRpcWallet: string,
         vaultAddress?: string
     ): Promise<boolean> {
-        const bitcoinCoreClient = new BitcoinCoreClient(
-            btcNetwork,
-            btcHost,
-            btcRpcUser,
-            btcRpcPass,
-            btcRpcPort,
-            btcRpcWallet
-        );
         await issue(
             this.polkaBtc.api,
             this.polkaBtc.electrsAPI,
@@ -107,13 +96,21 @@ export class Issue {
         account: KeyringPair,
         btcHost: string,
         btcRpcPort: string,
-        btcRpcUSer: string,
+        btcRpcUser: string,
         btcRpcPass: string,
         btcNetwork: string,
         btcRpcWallet: string
     ): Promise<void> {
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat issues-----`);
-        const vaults = shuffleArray(await this.polkaBtc.vaults.list());
+        const bitcoinCoreClient = new BitcoinCoreClient(
+            btcNetwork,
+            btcHost,
+            btcRpcUser,
+            btcRpcPass,
+            btcRpcPort,
+            btcRpcWallet
+        );
+        const vaults = _.shuffle(await this.polkaBtc.vaults.list());
         const amountToIssue = new Big(satToBTC((await this.getAmountToIssue()).toString()));
         for (const vault of vaults) {
                 try {
@@ -121,25 +118,15 @@ export class Issue {
                     this.requestAndExecuteIssue(
                         account,
                         amountToIssue,
-                        btcHost,
-                        btcRpcPort,
-                        btcRpcUSer,
-                        btcRpcPass,
+                        bitcoinCoreClient,
                         btcNetwork,
-                        btcRpcWallet
+                        vault.id.toString()
                     );
-                    await this.sleep(10 * 1000);
+                    // Wait for issue request to be broadcast
+                    await sleep(60000);
                 } catch (error) {
                     console.log(`Error: ${error}`);
                 }
         }
-
-        // Wait for all BTC transactions to get enough confirmations
-        await this.sleep(3 * MS_IN_AN_HOUR);
     }
-
-    async sleep(ms: number): Promise<void> {
-        return new Promise((resolve) => setTimeout(resolve, ms));
-    }
-
 }

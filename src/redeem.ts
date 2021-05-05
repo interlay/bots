@@ -1,12 +1,12 @@
-import { PolkaBTCAPI, btcToSat, stripHexPrefix } from "@interlay/polkabtc";
+import { PolkaBTCAPI, btcToSat, stripHexPrefix, BitcoinCoreClient } from "@interlay/polkabtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import * as polkabtcStats from '@interlay/polkabtc-stats';
 import Big from "big.js";
 import BN from "bn.js";
+import _ from "underscore";
 
 import { MS_IN_AN_HOUR, LOAD_TEST_REDEEM_AMOUNT } from "./consts";
 import { Issue } from "./issue";
-import { shuffleArray } from "./utils";
 
 export class Redeem {
     vaultHeartbeats = new Map<string, number>();
@@ -97,27 +97,19 @@ export class Redeem {
     async issueIfNeeded(
         vaultCount: number,
         account: KeyringPair,
-        btcHost: string,
-        btcRpcPort: string,
-        btcRpcUSer: string,
-        btcRpcPass: string,
+        bitcoinCoreClient: BitcoinCoreClient,
         btcNetwork: string,
-        btcRpcWallet: string
     ) {
         const accountId = this.polkaBtc.api.createType("AccountId", account.address);
         const minimumBalanceForHeartbeat = await this.getMinimumBalanceForHeartbeat(vaultCount);
         const redeemablePolkaSATBalance = new BN(btcToSat((await this.polkaBtc.treasury.balance(accountId)).toString()));
         if (redeemablePolkaSATBalance.lte(minimumBalanceForHeartbeat)) {
             console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
-            await this.issue.requestAndExecuteIssue(
+            this.issue.requestAndExecuteIssue(
                 account,
                 this.issueTopUpAmount,
-                btcHost,
-                btcRpcPort,
-                btcRpcUSer,
-                btcRpcPass,
+                bitcoinCoreClient,
                 btcNetwork,
-                btcRpcWallet
             );
         }
     }
@@ -139,22 +131,26 @@ export class Redeem {
         redeemAddress: string,
         btcHost: string,
         btcRpcPort: string,
-        btcRpcUSer: string,
+        btcRpcUser: string,
         btcRpcPass: string,
         btcNetwork: string,
         btcRpcWallet: string
     ): Promise<void> {
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
-        const vaults = shuffleArray(await this.polkaBtc.vaults.list());
+        const vaults = _.shuffle(await this.polkaBtc.vaults.list());
+        const bitcoinCoreClient = new BitcoinCoreClient(
+            btcNetwork,
+            btcHost,
+            btcRpcUser,
+            btcRpcPass,
+            btcRpcPort,
+            btcRpcWallet
+        );
         await this.issueIfNeeded(
             vaults.length,
             account,
-            btcHost,
-            btcRpcPort,
-            btcRpcUSer,
-            btcRpcPass,
-            btcNetwork,
-            btcRpcWallet
+            bitcoinCoreClient,
+            btcNetwork
         );
         const amountToRedeem = this.polkaBtc.api.createType("Balance", (await this.getMinRedeemableAmount()).toString());
         for (const vault of vaults) {

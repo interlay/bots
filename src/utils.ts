@@ -1,8 +1,11 @@
+import { BitcoinCoreClient } from "@interlay/polkabtc";
 
-export function shuffleArray(array: any[]): any[] {
-    for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
+export async function waitForEmptyMempool(bitcoinCoreClient: BitcoinCoreClient): Promise<void> {
+    while((await bitcoinCoreClient.getMempoolInfo()).size === 0) {
+        await sleep(1000);
     }
-    return array;
+}
+
+export async function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
