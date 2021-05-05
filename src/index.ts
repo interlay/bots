@@ -21,7 +21,7 @@ const argv = yargs(hideBin(process.argv))
     .option('per-hour', {
         type: 'number',
         description: 'Frequency of issuing and reddeming with each vault in the system. Example: 0.5 => issue and redeem every two hours.',
-        default: 1 / 3
+        default: 1 / 8
     })
     .option('execute-pending-redeems', {
         type: 'boolean',
@@ -126,7 +126,7 @@ async function main(inputFlag: InputFlag, requestWaitingTime: number) {
             break;
         }
         case(InputFlag.heartbeats): {
-            await heartbeats(polkaBtcApi, account, process.env.REDEEM_ADDRESS as string);
+            heartbeats(polkaBtcApi, account, process.env.REDEEM_ADDRESS as string);
             setInterval(heartbeats, requestWaitingTime, account);
             break;
         }
