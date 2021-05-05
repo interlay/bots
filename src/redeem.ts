@@ -6,6 +6,7 @@ import BN from "bn.js";
 
 import { MS_IN_AN_HOUR, LOAD_TEST_REDEEM_AMOUNT } from "./consts";
 import { Issue } from "./issue";
+import { shuffleArray } from "./utils";
 
 export class Redeem {
     vaultHeartbeats = new Map<string, number>();
@@ -144,7 +145,7 @@ export class Redeem {
         btcRpcWallet: string
     ): Promise<void> {
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
-        const vaults = await this.polkaBtc.vaults.list();
+        const vaults = shuffleArray(await this.polkaBtc.vaults.list());
         await this.issueIfNeeded(
             vaults.length,
             account,

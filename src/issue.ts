@@ -4,6 +4,7 @@ import Big from "big.js";
 import BN from "bn.js";
 
 import { MS_IN_AN_HOUR, LOAD_TEST_ISSUE_AMOUNT } from "./consts";
+import { shuffleArray } from "./utils";
 
 export class Issue {
     polkaBtc: PolkaBTCAPI;
@@ -112,7 +113,7 @@ export class Issue {
         btcRpcWallet: string
     ): Promise<void> {
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat issues-----`);
-        const vaults = await this.polkaBtc.vaults.list();
+        const vaults = shuffleArray(await this.polkaBtc.vaults.list());
         const amountToIssue = new Big(satToBTC((await this.getAmountToIssue()).toString()));
         for (const vault of vaults) {
                 try {
