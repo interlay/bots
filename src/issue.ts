@@ -8,7 +8,6 @@ import { MS_IN_AN_HOUR, LOAD_TEST_ISSUE_AMOUNT } from "./consts";
 export class Issue {
     polkaBtc: PolkaBTCAPI;
     private redeemDustValue: BN | undefined;
-    vaultHeartbeats = new Map<string, number>();
 
     constructor(polkaBtc: PolkaBTCAPI) {
         this.polkaBtc = polkaBtc;
@@ -118,7 +117,7 @@ export class Issue {
         for (const vault of vaults) {
                 try {
                     console.log(`[${new Date().toLocaleString()}] Issuing ${amountToIssue} InterBTC with ${vault.id.toString()}`);
-                    await this.requestAndExecuteIssue(
+                    this.requestAndExecuteIssue(
                         account,
                         amountToIssue,
                         btcHost,
@@ -128,28 +127,18 @@ export class Issue {
                         btcNetwork,
                         btcRpcWallet
                     );
-                    this.vaultHeartbeats.set(vault.id.toString(), Date.now());
+                    await this.sleep(10 * 1000);
                 } catch (error) {
                     console.log(`Error: ${error}`);
                 }
         }
+
+        // Wait for all BTC transactions to get enough confirmations
+        await this.sleep(3 * MS_IN_AN_HOUR);
     }
 
-    /**
-     * A vault is considered alive if it successfully fulfilled an issue
-     * requested by this bot within the last hour.
-     * @returns An array of [vault_id, last_active_date] tuples, where the 
-     * `last_active_date` is measured in milliseconds since the Unix epoch.
-     */
-    async getAliveVaults(): Promise<[string, number][]> {
-        const offlineThreshold = new Date(Date.now() - MS_IN_AN_HOUR);
-        const aliveVaults: [string, number][] = [];
-        for (const [key, value] of this.vaultHeartbeats.entries()) {
-            if (value >= offlineThreshold.getTime()) {
-                aliveVaults.push([key, value]);
-            }
-        }
-        return aliveVaults;
+    async sleep(ms: number): Promise<void> {
+        return new Promise((resolve) => setTimeout(resolve, ms));
     }
 
 }
