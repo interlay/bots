@@ -134,7 +134,8 @@ export class Redeem {
         btcRpcUser: string,
         btcRpcPass: string,
         btcNetwork: string,
-        btcRpcWallet: string
+        btcRpcWallet: string,
+        timeoutMinutes = 2
     ): Promise<void> {
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
         const vaults = _.shuffle(await this.polkaBtc.vaults.list());
@@ -165,9 +166,9 @@ export class Redeem {
                     const redeemRequestId = requestResult.id.toString();
                     const opreturnData = stripHexPrefix(redeemRequestId);
 
-                    // Wait at most two minutes to receive the BTC transaction with the
+                    // Wait at most `timeoutMinutes` minutes to receive the BTC transaction with the
                     // redeemed funds.
-                    await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, 60000, 5000)
+                    await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, timeoutMinutes * 60000, 5000)
                         .catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
                     this.vaultHeartbeats.set(vault.id.toString(), Date.now());
                 } catch (error) {
