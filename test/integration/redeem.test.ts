@@ -70,12 +70,13 @@ describe("redeem", () => {
         await redeem.performHeartbeatRedeems(
             alice,
             redeemBtcAddress,
-            "regtest",
             "0.0.0.0",
+            "18443",
             "rpcuser",
             "rpcpassword",
-            "18443",
+            "regtest",
             "Alice",
+            3
         );
         const aliveVaults = await redeem.getAliveVaults();
         chai.assert.isTrue(vaultList.length === 2);
@@ -92,12 +93,13 @@ describe("redeem", () => {
         await redeem.performHeartbeatRedeems(
             alice,
             redeemBtcAddress,
-            "regtest",
             "0.0.0.0",
+            "18443",
             "rpcuser",
             "rpcpassword",
-            "18443",
+            "regtest",
             "Alice",
+            3
         );
         const aliveVaults = await redeem.getAliveVaults();
         chai.assert.isTrue(vaultList.length === 2);
