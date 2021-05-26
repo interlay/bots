@@ -11,25 +11,25 @@ import { Issue } from "./issue";
 export class Redeem {
     vaultHeartbeats = new Map<string, number>();
     issue: Issue;
-    private redeemDustValue: BN | undefined;
+    private redeemDustValue: Big | undefined;
     polkaBtc: PolkaBTCAPI;
     constructor(polkaBtc: PolkaBTCAPI, private issueTopUpAmount = new Big(1)) {
         this.issue = new Issue(polkaBtc);
         this.polkaBtc = polkaBtc;
     }
 
-    async getCachedRedeemDustValue(): Promise<BN> {
+    async getCachedRedeemDustValue(): Promise<Big> {
         if (!this.redeemDustValue) {
-            this.redeemDustValue = new BN((await this.polkaBtc.redeem.getDustValue()).toString());
+            this.redeemDustValue = await this.polkaBtc.redeem.getDustValue();
         }
         return this.redeemDustValue;
     }
 
-    increaseByTenPercent(x: BN): BN {
-        return x.mul(new BN(11)).div(new BN(10));
+    increaseByTenPercent(x: Big): Big {
+        return x.mul(new Big(11)).div(new Big(10));
     }
 
-    async getMinimumBalanceForHeartbeat(vaultCount?: number): Promise<BN> {
+    async getMinimumBalanceForHeartbeat(vaultCount?: number): Promise<Big> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
         if (vaultCount === undefined) {
             const vaults = await this.polkaBtc.vaults.list();
@@ -37,10 +37,10 @@ export class Redeem {
         }
         // Assume all vaults are online, so the bot needs more than `redeemDustValue * vaultCount`
         // to redeem from all. Thus, we add a 10% buffer to that minimum.
-        return this.increaseByTenPercent(redeemDustValue.mul(new BN(vaultCount)));
+        return this.increaseByTenPercent(redeemDustValue.mul(new Big(vaultCount)));
     }
 
-    async getMinRedeemableAmount(): Promise<BN> {
+    async getMinRedeemableAmount(): Promise<Big> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
         // Redeeming exactly `redeemDustValue` fails, so increase this value by 10%
         return this.increaseByTenPercent(redeemDustValue);
@@ -51,13 +51,8 @@ export class Redeem {
             Promise.reject("Redeem Bitcoin address not set in the environment");
         }
         console.log(`[${new Date().toLocaleString()}] requesting redeem...`);
-        const amountAsSatoshiString = btcToSat(LOAD_TEST_REDEEM_AMOUNT.toString());
-        const amountAsSatoshi = this.polkaBtc.api.createType(
-            "Balance",
-            amountAsSatoshiString
-        );
         try {
-            await this.polkaBtc.redeem.request(amountAsSatoshi, process.env.REDEEM_ADDRESS as string);
+            await this.polkaBtc.redeem.request(new Big(LOAD_TEST_REDEEM_AMOUNT), process.env.REDEEM_ADDRESS as string);
             console.log(
                 `[${new Date().toLocaleString()}] Sent redeem request for ${LOAD_TEST_REDEEM_AMOUNT.toFixed(
                     8
@@ -102,8 +97,8 @@ export class Redeem {
     ) {
         const accountId = this.polkaBtc.api.createType("AccountId", account.address);
         const minimumBalanceForHeartbeat = await this.getMinimumBalanceForHeartbeat(vaultCount);
-        const redeemablePolkaSATBalance = new BN(btcToSat((await this.polkaBtc.treasury.balance(accountId)).toString()));
-        if (redeemablePolkaSATBalance.lte(minimumBalanceForHeartbeat)) {
+        const redeemablePolkaBTCBalance = await this.polkaBtc.treasury.balance(accountId);
+        if (redeemablePolkaBTCBalance.lte(minimumBalanceForHeartbeat)) {
             console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
             this.issue.requestAndExecuteIssue(
                 account,
@@ -153,9 +148,9 @@ export class Redeem {
             bitcoinCoreClient,
             btcNetwork
         );
-        const amountToRedeem = this.polkaBtc.api.createType("Balance", (await this.getMinRedeemableAmount()).toString());
+        const amountToRedeem = await this.getMinRedeemableAmount();
         for (const vault of vaults) {
-            if (vault.issued_tokens.gte(amountToRedeem)) {
+            if (vault.issued_tokens.gte(new BN(amountToRedeem.toString()))) {
                 try {
                     console.log(`[${new Date().toLocaleString()}] Redeeming ${amountToRedeem} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
                     const requestResult = await this.polkaBtc.redeem.request(

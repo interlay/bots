@@ -255,21 +255,21 @@
   resolved "https://registry.yarnpkg.com/@interlay/polkabtc-types/-/polkabtc-types-0.5.2.tgz#403ec1ecb5edddafc4a957b1f20439894d112563"
   integrity sha512-Tc397SZSVfo6cvh+Rv9HxZdcymZoHXyNyX5LwnCgsqE04bfjrsn2uocOH6V8KHimffOn5MMmYE4i6zc11ntAoA==
 
-"@interlay/polkabtc-types@0.6.2":
-  version "0.6.2"
-  resolved "https://registry.yarnpkg.com/@interlay/polkabtc-types/-/polkabtc-types-0.6.2.tgz#0eeef460850e4b82abd58aa2ebbd8b92497d7e7a"
-  integrity sha512-uhlzcp9rcwGtsEWStzcWrKWVIQtmnQTVgpXL2RdWSF2Ed4cF+Y2fQe5SsKBSR56T6GImHTYds0Psare+HzI0vw==
+"@interlay/polkabtc-types@0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@interlay/polkabtc-types/-/polkabtc-types-0.7.2.tgz#6b4e3845b03a73987fc40b8f0e4d2cf82c266e16"
+  integrity sha512-eGasKq3xgpBIBKTO9l/eWOA2i8TwjTqOXduNjZ/j086DLp+DQ3m5/YgpWXZbVo7I6AJgClQ8r+xEjndcw7QHXA==
 
-"@interlay/polkabtc@0.14.4":
-  version "0.14.4"
-  resolved "https://registry.yarnpkg.com/@interlay/polkabtc/-/polkabtc-0.14.4.tgz#2ba7566d544994fbed7f8c3c8d0e4cae4b626461"
-  integrity sha512-xw+rOftiC9AXMk2c12r7rxz7pbYAbXs22BPtDl8p0YgREWYdP2PKUNPmbVjPjVaq5moyKJAcmshokZnJ/VPmfQ==
+"@interlay/polkabtc@0.15.5":
+  version "0.15.5"
+  resolved "https://registry.yarnpkg.com/@interlay/polkabtc/-/polkabtc-0.15.5.tgz#5eeb35a091506e54d2d1034af41dac818391cbc9"
+  integrity sha512-KELTxomx3BZkimsrtAg2iWufs3aggCvouRXOV7+D3yI/+EaEBV1myc7eHLBhsgmUTgchpTl9vz6tFV/spUXZFg==
   dependencies:
     "@interlay/esplora-btc-api" "0.4.0"
-    "@interlay/polkabtc-types" "0.6.2"
+    "@interlay/polkabtc-types" "0.7.2"
     "@polkadot/api" "4.8.1"
     "@polkadot/typegen" "4.8.1"
-    "@types/big.js" "4.0.5"
+    "@types/big.js" "6.0.2"
     big.js "6.0.3"
     bitcoin-core "^3.0.0"
     bitcoinjs-lib "^5.2.0"
@@ -834,15 +834,15 @@
     moment "^2.24.0"
     validator "^12.2.0"
 
-"@types/big.js@4.0.5", "@types/big.js@^4.0.5":
-  version "4.0.5"
-  resolved "https://registry.yarnpkg.com/@types/big.js/-/big.js-4.0.5.tgz#62c61697646269e39191f24e55e8272f05f21fc0"
-  integrity sha512-D9KFrAt05FDSqLo7PU9TDHfDgkarlwdkuwFsg7Zm4xl62tTNaz+zN+Tkcdx2wGLBbSMf8BnoMhOVeUGUaJfLKg==
-
-"@types/big.js@^6.0.2":
+"@types/big.js@6.0.2", "@types/big.js@^6.0.2":
   version "6.0.2"
   resolved "https://registry.yarnpkg.com/@types/big.js/-/big.js-6.0.2.tgz#a86938c1bb4511e69d91f69823cacc3f48ff1fa3"
   integrity sha512-7NdmOT3zjtghMofDwP1nAJCJWVjc/96V5msXRAZ4lPrvpGlajA95VQec7OXwA2wQaVmhjt+F5ko8pjvQU1tTFA==
+
+"@types/big.js@^4.0.5":
+  version "4.0.5"
+  resolved "https://registry.yarnpkg.com/@types/big.js/-/big.js-4.0.5.tgz#62c61697646269e39191f24e55e8272f05f21fc0"
+  integrity sha512-D9KFrAt05FDSqLo7PU9TDHfDgkarlwdkuwFsg7Zm4xl62tTNaz+zN+Tkcdx2wGLBbSMf8BnoMhOVeUGUaJfLKg==
 
 "@types/bn.js@^4.11.6":
   version "4.11.6"
