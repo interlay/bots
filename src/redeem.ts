@@ -150,9 +150,9 @@ export class Redeem {
         );
         const amountToRedeem = await this.getMinRedeemableAmount();
         for (const vault of vaults) {
-            if (vault.issued_tokens.gte(new BN(amountToRedeem.toString()))) {
+            if (vault.issued_tokens.gte(new BN(btcToSat(amountToRedeem.toString())))) {
                 try {
-                    console.log(`[${new Date().toLocaleString()}] Redeeming ${amountToRedeem} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
+                    console.log(`[${new Date().toLocaleString()}] Redeeming ${btcToSat(amountToRedeem.toString())} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
                     const requestResult = await this.polkaBtc.redeem.request(
                         amountToRedeem,
                         redeemAddress,
