@@ -5,6 +5,7 @@ import {
 import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
 import Big from "big.js";
+import {cryptoWaitReady} from "@polkadot/util-crypto";
 
 import { MS_IN_AN_HOUR } from "./consts";
 import { Issue } from "./issue";
@@ -109,6 +110,7 @@ async function main(inputFlag: InputFlag, requestWaitingTime: number) {
     if (!process.env.POLKABTC_BOT_ACCOUNT) {
         Promise.reject("Bot account mnemonic not set in the environment");
     }
+    await cryptoWaitReady();
     let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
     console.log(`Bot account: ${account.address}`);
     console.log(`Waiting time between bot runs: ${requestWaitingTime / (60 * 60 * 1000)} hours`);
