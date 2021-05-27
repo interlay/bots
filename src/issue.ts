@@ -75,15 +75,17 @@ export class Issue {
     }
 
     increaseByFiftyPercent(x: Big): Big {
-        return x.mul(new Big(3)).div(new Big(2));
+        return x.mul(new Big(15)).div(new Big(10));
     }
 
     async getAmountToIssue(): Promise<Big> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
         // We need to account for redeem fees to redeem later
         const bitcoinNetworkFees = await this.polkaBtc.redeem.getCurrentInclusionFee();
-        // Return 50% more than the redeem dust amount, as some of it gets lost to fees.
-        return this.increaseByFiftyPercent(redeemDustValue).add(bitcoinNetworkFees);
+        const redeemBridgeFee = await this.polkaBtc.redeem.getFeesToPay(redeemDustValue);
+        const issueBridgeFee = await this.polkaBtc.issue.getFeesToPay(redeemDustValue);
+        // Return 10% more than the redeem dust amount, as some of it gets lost to fees.
+        return this.increaseByFiftyPercent(redeemDustValue).add(bitcoinNetworkFees).add(redeemBridgeFee).add(issueBridgeFee);
     }
 
     /**

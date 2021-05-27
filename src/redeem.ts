@@ -25,8 +25,8 @@ export class Redeem {
         return this.redeemDustValue;
     }
 
-    increaseByTenPercent(x: Big): Big {
-        return x.mul(new Big(11)).div(new Big(10));
+    increaseByThirtyPercent(x: Big): Big {
+        return x.mul(new Big(13)).div(new Big(10));
     }
 
     async getMinimumBalanceForHeartbeat(vaultCount?: number): Promise<Big> {
@@ -41,14 +41,15 @@ export class Redeem {
         }
         // Assume all vaults are online, so the bot needs more than `redeemDustValue * vaultCount`
         // to redeem from all. Thus, we add a 10% buffer to that minimum.
-        return this.increaseByTenPercent(redeemDustValue.mul(new Big(vaultCount)));
+        return this.increaseByThirtyPercent(redeemDustValue.mul(new Big(vaultCount)));
     }
 
     async getMinRedeemableAmount(): Promise<Big> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
         const bitcoinNetworkFees = await this.polkaBtc.redeem.getCurrentInclusionFee();
+        const bridgeFee = await this.polkaBtc.redeem.getFeesToPay(redeemDustValue);
         // Redeeming exactly `redeemDustValue` fails, so increase this value by 10%
-        return this.increaseByTenPercent(redeemDustValue).add(bitcoinNetworkFees);
+        return this.increaseByThirtyPercent(redeemDustValue).add(bitcoinNetworkFees).add(bridgeFee);
     }
 
     async request(): Promise<void> {
