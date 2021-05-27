@@ -33,8 +33,8 @@ describe("Initialize parachain state", () => {
 
     let alice: KeyringPair;
     let bob: KeyringPair;
-    let charlie: KeyringPair;
-    let dave: KeyringPair;
+    let charlie_stash: KeyringPair;
+    let dave_stash: KeyringPair;
 
     function sleep(ms: number): Promise<void> {
         return new Promise((resolve) => setTimeout(resolve, ms));
@@ -46,8 +46,8 @@ describe("Initialize parachain state", () => {
         // Alice is also the root account
         alice = keyring.addFromUri("//Alice");
         bob = keyring.addFromUri("//Bob");
-        charlie = keyring.addFromUri("//Charlie");
-        dave = keyring.addFromUri("//Dave");
+        charlie_stash = keyring.addFromUri("//Charlie//stash");
+        dave_stash = keyring.addFromUri("//Dave//stash");
 
         electrsAPI = new DefaultElectrsAPI("http://0.0.0.0:3002");
         bitcoinCoreClient = new BitcoinCoreClient("regtest", "0.0.0.0", "rpcuser", "rpcpassword", "18443", "Alice");
@@ -66,12 +66,12 @@ describe("Initialize parachain state", () => {
 
     it("should issue 0.1 PolkaBTC with Charlie", async () => {
         const polkaBtcToIssue = new Big(0.1);
-        await issue(api, electrsAPI, bitcoinCoreClient, alice, polkaBtcToIssue, charlie.address);
+        await issue(api, electrsAPI, bitcoinCoreClient, alice, polkaBtcToIssue, charlie_stash.address);
     });
 
     it("should issue 1 PolkaBTC with Dave", async () => {
         const polkaBtcToIssue = new Big(1);
-        await issue(api, electrsAPI, bitcoinCoreClient, alice, polkaBtcToIssue, dave.address);
+        await issue(api, electrsAPI, bitcoinCoreClient, alice, polkaBtcToIssue, dave_stash.address);
     });
 
 });
