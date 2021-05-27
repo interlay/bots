@@ -46,8 +46,9 @@ export class Redeem {
 
     async getMinRedeemableAmount(): Promise<Big> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
+        const bitcoinNetworkFees = await this.polkaBtc.redeem.getCurrentInclusionFee();
         // Redeeming exactly `redeemDustValue` fails, so increase this value by 10%
-        return this.increaseByTenPercent(redeemDustValue);
+        return this.increaseByTenPercent(redeemDustValue).add(bitcoinNetworkFees);
     }
 
     async request(): Promise<void> {
