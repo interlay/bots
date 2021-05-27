@@ -80,8 +80,10 @@ export class Issue {
 
     async getAmountToIssue(): Promise<Big> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
+        // We need to account for redeem fees to redeem later
+        const bitcoinNetworkFees = await this.polkaBtc.redeem.getCurrentInclusionFee();
         // Return 50% more than the redeem dust amount, as some of it gets lost to fees.
-        return this.increaseByFiftyPercent(redeemDustValue);
+        return this.increaseByFiftyPercent(redeemDustValue).add(bitcoinNetworkFees);
     }
 
     /**
