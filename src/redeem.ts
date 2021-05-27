@@ -30,6 +30,10 @@ export class Redeem {
     }
 
     async getMinimumBalanceForHeartbeat(vaultCount?: number): Promise<Big> {
+        if(!this.polkaBtc.vaults) {
+            console.log("Parachain not connected");
+            return new Big(0);
+        }
         const redeemDustValue = await this.getCachedRedeemDustValue();
         if (vaultCount === undefined) {
             const vaults = await this.polkaBtc.vaults.list();
@@ -132,6 +136,10 @@ export class Redeem {
         btcRpcWallet: string,
         timeoutMinutes = 2
     ): Promise<void> {
+        if(!this.polkaBtc.vaults) {
+            console.log("Parachain not connected");
+            return;
+        }
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
         const vaults = _.shuffle(await this.polkaBtc.vaults.list());
         const bitcoinCoreClient = new BitcoinCoreClient(

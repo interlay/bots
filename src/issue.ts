@@ -96,6 +96,10 @@ export class Issue {
         btcNetwork: string,
         btcRpcWallet: string
     ): Promise<void> {
+        if(!this.polkaBtc.vaults) {
+            console.log("Parachain not connected");
+            return;
+        }
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat issues-----`);
         const bitcoinCoreClient = new BitcoinCoreClient(
             btcNetwork,
