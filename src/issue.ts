@@ -47,19 +47,24 @@ export class Issue {
         btcNetwork: string,
         vaultAddress?: string
     ): Promise<boolean> {
-        console.log(`issuing: ${amount.toString()} BTC`);
-        await issue(
-            this.polkaBtc.api,
-            this.polkaBtc.electrsAPI,
-            bitcoinCoreClient,
-            requester,
-            amount,
-            vaultAddress,
-            undefined,
-            undefined,
-            btcNetwork
-        );
-        return true;
+        try {
+            console.log(`issuing: ${amount.toString()} BTC`);
+            await issue(
+                this.polkaBtc.api,
+                this.polkaBtc.electrsAPI,
+                bitcoinCoreClient,
+                requester,
+                amount,
+                vaultAddress,
+                undefined,
+                undefined,
+                btcNetwork
+            );
+            return true;
+        } catch (error) {
+            console.log(error);
+        }
+        return false;
     }
 
     async getCachedRedeemDustValue(): Promise<Big> {
