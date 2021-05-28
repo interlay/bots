@@ -22,7 +22,7 @@ const argv = yargs(hideBin(process.argv))
     })
     .option('wait-interval', {
         type: 'number',
-        description: 'Delay between rounds of issuing and reddeming with each vault in the system. Example: 2 => issue and redeem every two hours.',
+        description: 'Delay between rounds of issuing and redeeming with each vault in the system. Example: 2 => issue and redeem every two hours.',
         default: 8
     })
     .option('execute-pending-redeems', {
