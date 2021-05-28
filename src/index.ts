@@ -1,10 +1,12 @@
 import {
     createPolkabtcAPI,
     PolkaBTCAPI,
+    sleep,
 } from "@interlay/polkabtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
 import Big from "big.js";
+import {cryptoWaitReady} from "@polkadot/util-crypto";
 
 import { MS_IN_AN_HOUR } from "./consts";
 import { Issue } from "./issue";
@@ -20,7 +22,7 @@ const argv = yargs(hideBin(process.argv))
     })
     .option('wait-interval', {
         type: 'number',
-        description: 'Delay between rounds of issuing and reddeming with each vault in the system. Example: 2 => issue and redeem every two hours.',
+        description: 'Delay between rounds of issuing and redeeming with each vault in the system. Example: 2 => issue and redeem every two hours.',
         default: 8
     })
     .option('execute-pending-redeems', {
@@ -49,6 +51,7 @@ main(...parseArgs(argv))
         console.log(
             `[${new Date().toLocaleString()}] Error during bot operation: ${err}`
         );
+        console.log(err);
     });
 
 function connectToParachain(): Promise<PolkaBTCAPI> {
@@ -58,8 +61,10 @@ function connectToParachain(): Promise<PolkaBTCAPI> {
     return createPolkabtcAPI(process.env.PARACHAIN_URL as string, process.env.BITCOIN_NETWORK);
 }
 
-async function heartbeats(polkaBtcApi: PolkaBTCAPI, account: KeyringPair, redeemAddress: string): Promise<void> {
+async function heartbeats(account: KeyringPair, redeemAddress: string): Promise<void> {
     try {
+        const polkaBtcApi = await connectToParachain();
+        polkaBtcApi.setAccount(account);
         if (
             !process.env.BITCOIN_RPC_HOST
             || !process.env.BITCOIN_RPC_PORT
@@ -106,23 +111,25 @@ async function main(inputFlag: InputFlag, requestWaitingTime: number) {
     if (!process.env.POLKABTC_BOT_ACCOUNT) {
         Promise.reject("Bot account mnemonic not set in the environment");
     }
-    const polkaBtcApi = await connectToParachain();
+    await cryptoWaitReady();
+    await sleep(5000);
     let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
     console.log(`Bot account: ${account.address}`);
     console.log(`Waiting time between bot runs: ${requestWaitingTime / (60 * 60 * 1000)} hours`);
-    polkaBtcApi.setAccount(account);
     
     switch(inputFlag) {
         case(InputFlag.executePendingRedeems): {
             if (!process.env.REDEEM_ADDRESS) {
                 Promise.reject("Redeem Bitcoin address not set in the environment");
             }
+            const polkaBtcApi = await connectToParachain();
+            polkaBtcApi.setAccount(account);
             const redeem = new Redeem(polkaBtcApi);
             await redeem.executePendingRedeems();
             break;
         }
         case(InputFlag.heartbeats): {
-            heartbeats(polkaBtcApi, account, process.env.REDEEM_ADDRESS as string);
+            heartbeats(account, process.env.REDEEM_ADDRESS as string);
             setInterval(heartbeats, requestWaitingTime, account);
             break;
         }

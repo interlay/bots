@@ -1,7 +1,6 @@
-import { PolkaBTCAPI, btcToSat, issue, BitcoinCoreClient, satToBTC } from "@interlay/polkabtc";
+import { PolkaBTCAPI, issue, BitcoinCoreClient } from "@interlay/polkabtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import Big from "big.js";
-import BN from "bn.js";
 import _ from 'underscore';
 
 import { LOAD_TEST_ISSUE_AMOUNT } from "./consts";
@@ -9,7 +8,7 @@ import { sleep, waitForEmptyMempool } from "./utils";
 
 export class Issue {
     polkaBtc: PolkaBTCAPI;
-    private redeemDustValue: BN | undefined;
+    private redeemDustValue: Big | undefined;
 
     constructor(polkaBtc: PolkaBTCAPI) {
         this.polkaBtc = polkaBtc;
@@ -17,7 +16,6 @@ export class Issue {
 
     async request(requester: KeyringPair) {
         console.log(`[${new Date().toLocaleString()}] -----Requesting issue...-----`);
-        const amountAsSatoshiString = btcToSat(LOAD_TEST_ISSUE_AMOUNT.toString());
 
         const requesterAccountId = this.polkaBtc.api.createType(
             "AccountId",
@@ -28,12 +26,8 @@ export class Issue {
             `[${new Date().toLocaleString()}] DOT balance (${requester.address
             }): ${balance}`
         );
-        const amountAsSatoshi = this.polkaBtc.api.createType(
-            "Balance",
-            amountAsSatoshiString
-        );
         try {
-            await this.polkaBtc.issue.request(amountAsSatoshi);
+            await this.polkaBtc.issue.request(new Big(LOAD_TEST_ISSUE_AMOUNT));
             console.log(
                 `[${new Date().toLocaleString()}] Sent issue request for ${LOAD_TEST_ISSUE_AMOUNT.toFixed(
                     8
@@ -53,35 +47,45 @@ export class Issue {
         btcNetwork: string,
         vaultAddress?: string
     ): Promise<boolean> {
-        await issue(
-            this.polkaBtc.api,
-            this.polkaBtc.electrsAPI,
-            bitcoinCoreClient,
-            requester,
-            amount,
-            vaultAddress,
-            undefined,
-            undefined,
-            btcNetwork
-        );
-        return true;
+        try {
+            console.log(`issuing: ${amount.toString()} BTC`);
+            await issue(
+                this.polkaBtc.api,
+                this.polkaBtc.electrsAPI,
+                bitcoinCoreClient,
+                requester,
+                amount,
+                vaultAddress,
+                undefined,
+                undefined,
+                btcNetwork
+            );
+            return true;
+        } catch (error) {
+            console.log(error);
+        }
+        return false;
     }
 
-    async getCachedRedeemDustValue(): Promise<BN> {
+    async getCachedRedeemDustValue(): Promise<Big> {
         if (!this.redeemDustValue) {
-            this.redeemDustValue = new BN((await this.polkaBtc.redeem.getDustValue()).toString());
+            this.redeemDustValue = await this.polkaBtc.redeem.getDustValue();
         }
         return this.redeemDustValue;
     }
 
-    increaseByFiftyPercent(x: BN): BN {
-        return x.mul(new BN(3)).div(new BN(2));
+    increaseByFiftyPercent(x: Big): Big {
+        return x.mul(new Big(15)).div(new Big(10));
     }
 
-    async getAmountToIssue(): Promise<BN> {
+    async getAmountToIssue(): Promise<Big> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
-        // Return 50% more than the redeem dust amount, as some of it gets lost to fees.
-        return this.increaseByFiftyPercent(redeemDustValue);
+        // We need to account for redeem fees to redeem later
+        const bitcoinNetworkFees = await this.polkaBtc.redeem.getCurrentInclusionFee();
+        const redeemBridgeFee = await this.polkaBtc.redeem.getFeesToPay(redeemDustValue);
+        const issueBridgeFee = await this.polkaBtc.issue.getFeesToPay(redeemDustValue);
+        // Return 10% more than the redeem dust amount, as some of it gets lost to fees.
+        return this.increaseByFiftyPercent(redeemDustValue).add(bitcoinNetworkFees).add(redeemBridgeFee).add(issueBridgeFee);
     }
 
     /**
@@ -101,6 +105,10 @@ export class Issue {
         btcNetwork: string,
         btcRpcWallet: string
     ): Promise<void> {
+        if(!this.polkaBtc.vaults) {
+            console.log("Parachain not connected");
+            return;
+        }
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat issues-----`);
         const bitcoinCoreClient = new BitcoinCoreClient(
             btcNetwork,
@@ -111,7 +119,7 @@ export class Issue {
             btcRpcWallet
         );
         const vaults = _.shuffle(await this.polkaBtc.vaults.list());
-        const amountToIssue = new Big(satToBTC((await this.getAmountToIssue()).toString()));
+        const amountToIssue = await this.getAmountToIssue();
         for (const vault of vaults) {
                 try {
                     console.log(`[${new Date().toLocaleString()}] Issuing ${amountToIssue} InterBTC with ${vault.id.toString()}`);
