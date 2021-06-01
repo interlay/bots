@@ -19,7 +19,7 @@
     },
     "engineStrict": true,
     "dependencies": {
-        "@interlay/polkabtc": "0.15.6",
+        "@interlay/polkabtc": "0.16.3",
         "@interlay/polkabtc-stats": "0.1.13",
         "@types/big.js": "6.0.2",
         "@types/node": "^14.14.31",

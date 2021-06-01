@@ -32,9 +32,9 @@ BITCOIN_RPC_PORT - RPC port of your Bitcoin node
 BITCOIN_RPC_WALLET - Name of the wallet to use from your Bitcoin node
 ISSUE_TOP_UP_AMOUNT - PolkaBTC to top up by in case the bot is short of PolkaBTC to redeem
 REDEEM_ADDRESS - Bitcoin address to redeem PolkaBTC to
-PARACHAIN_URL - WebSockets URL of the BTC Parachain (use value in `.env.local` or `.en.testnet`)
-STATS_URL - URL of the PolkaBTC stats component (use value in `.env.local` or `.en.testnet`)
-FAUCET_URL - URL of the PolkaBTC faucet component (use value in `.env.local` or `.en.testnet`)
+PARACHAIN_URL - WebSockets URL of the BTC Parachain (use value in `.env.local` or `.env.testnet`)
+STATS_URL - URL of the PolkaBTC stats component (use value in `.env.local` or `.env.testnet`)
+FAUCET_URL - URL of the PolkaBTC faucet component (use value in `.env.local` or `.env.testnet`)
 ```
 
 # Setting up a Bot
@@ -89,10 +89,10 @@ systemctl daemon-reload
 systemctl start bridge-bot.service
 ```
 
-You can then check the status of your service by running:
+You can then check the logs (latest first) by running:
 
 ```shell
-journalctl --follow _SYSTEMD_UNIT=bridge-bot.service
+journalctl -u bridge-bot.service -r
 ```
 
 Or by streaming the logs to the `bridge-bot.log` file in the current directory:
