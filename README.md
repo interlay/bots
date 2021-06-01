@@ -1,18 +1,8 @@
-# Bot for Cross-Chain Bridges
+# Overview
 
 TypeScript utility to load test cross-chain systems based on XCLAIM (currently only targeting PolkaBTC).
 
 This bot is in a very early stage, expect crashes. Bug reports, fixes and suggestions are welcome!
-
-## Getting started
-
-There are several environment variables which need to be set to run the bot. Edit `.env.local` and/or `.env.testnet`. You can then run `source .env.local` or `source .env.testnet` to set these variables in the environment.
-
-Install the dependencies:
-
-```bash
-yarn install
-```
 
 You can run the bot with the following options:
 ```
@@ -23,22 +13,80 @@ You can run the bot with the following options:
                              Mutually exclusive with the
                              `execute-pending-redeems` flag.
                                                        [boolean] [default: true]
-  --wait-interval            Delay between rounds of issuing and redeeming with
-                             each vault in the system. Example: 2 => issue and
-                             redeem every two hours.       [number] [default: 8]
+  --per-hour                 Frequency of issuing and redeeming with each vault
+                             in the system. Example: 0.5 => issue and redeem
+                             every two hours.           [number] [default: 0.33]
   --execute-pending-redeems  Try to execute redeem requests whose BTC payment
                              has already been made. Mutually exclusive with the
                              `heartbeats` flag.       [boolean] [default: false]
 ```
 
-To run, you can use TS-Node:
+# Setting up a Bot
 
-```bash
-yarn live [options]
+The following instructions have been tested on Linux.
+
+## Quickstart
+
+Set up the Bot locally using docker-compose. Best if you want to quickly try it out.
+
+```shell
+git clone https://github.com/interlay/bridge-bot
+cd bridge-bot
+yarn install
+source .env.local
+docker-compose up
+
+# In a different terminal:
+yarn live
 ```
 
-Or compile and run with standard Node:
+## Standard Installation
 
-```bash
-yarn build && yarn start [options]
+Run Bitcoin and the Bot as a service on your computer or server. Best if you intend to load test the live system.
+
+**Some of the most common Linux systems support this approach (see [systemd](https://en.wikipedia.org/wiki/Systemd)).**
+
+### 1. Install a local Bitcoin node
+
+Download and install a [Bitcoin Core full-node](https://bitcoin.org/en/full-node#what-is-a-full-node) by following the [Linux instructions](https://bitcoin.org/en/full-node#linux-instructions).
+
+### 2. Start the Bitcoin testnet node
+
+**Synchronizing the BTC testnet takes about 30 GB of storage and takes a couple of hours depending on your internet connection.**
+
+The Relayer requires a Bitcoin node with only part of the data. You can start Bitcoin with the following [optimizations](https://bitcoin.org/en/full-node#what-is-a-full-node):
+
+```shell
+bitcoind -testnet -server -maxuploadtarget=200 -blocksonly -rpcuser=rpcuser -rpcpassword=rpcpassword
+```
+
+
+### 3. Install and start the Bot
+
+Ensure that the current directory has a correctly configured `.env.testnet` file, using [this template](https://github.com/interlay/bridge-bot/blob/master/.env.testnet). Pay particular attention to `POLKABTC_BOT_ACCOUNT` (the Substrate mnemonic) and `BITCOIN_RPC_WALLET` (the name of the wallet to use from your Bitcoin node) - these should be dedicated (unique) to just the Bot.
+
+```shell
+wget https://raw.githubusercontent.com/interlay/polkabtc-docs/master/scripts/bridge-bot/setup
+wget https://raw.githubusercontent.com/interlay/polkabtc-docs/master/scripts/bridge-bot/bridge-bot.service
+chmod +x ./setup && sudo ./setup
+systemctl daemon-reload
+systemctl start bridge-bot.service
+```
+
+You can then check the status of your service by running:
+
+```shell
+journalctl --follow _SYSTEMD_UNIT=bridge-bot.service
+```
+
+Or by streaming the logs to the `bridge-bot.log` file in the current directory:
+
+```shell
+journalctl --follow _SYSTEMD_UNIT=polkabtc-bridge-bot &> bridge-bot.log
+```
+
+To stop the service, run:
+
+```shell
+systemctl stop bridge-bot.service
 ```
