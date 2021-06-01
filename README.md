@@ -21,7 +21,7 @@ You can run the bot with the following options:
                              `heartbeats` flag.       [boolean] [default: false]
 ```
 
-The bot is configured using the following environment variables (check `.env.local` and `.en.testnet`):
+The bot is configured using the following environment variables (check `.env.local` and `.env.testnet`):
 ```
 POLKABTC_BOT_ACCOUNT - The mnemonic or seed key of the Substrate account the bot will be using.
 BITCOIN_NETWORK - The bitcoin network to use PolkaBTC on
