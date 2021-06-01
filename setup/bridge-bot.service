@@ -1,0 +1,13 @@
+[Unit]
+Description=Bot for load testing PolkaBTC
+After=network.target
+
+[Service]
+EnvironmentFile=/opt/polkabtc/bridge-bot/.env.testnet
+Type=simple
+ExecStart=/usr/local/bin/node /opt/polkabtc/bridge-bot/build/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

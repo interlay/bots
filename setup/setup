@@ -1,0 +1,28 @@
+#!/bin/sh
+
+# Install node 14 and yarn
+curl -sL https://deb.nodesource.com/setup_14.x | sudo -E bash -
+apt-get install -y nodejs
+sudo cp $(which node) /usr/local/bin
+npm install --global yarn
+
+# Get the latest bot from `master`
+git clone git@github.com:interlay/bridge-bot.git
+
+# Overwrite using the user's `.env.testnet` file
+cp .env.testnet bridge-bot/.env.testnet
+
+# Build
+cd bridge-bot
+yarn install
+yarn build
+cd ../
+
+[ -d /opt/polkabtc ] || mkdir /opt/polkabtc
+# If a previous bridge-bot exists, remove it
+sudo rm -rf /opt/polkabtc/bridge-bot
+# Copy the newly compiled version
+cp -r bridge-bot /opt/polkabtc/
+
+[ -d /usr/lib/systemd/system/ ] || mkdir /usr/lib/systemd/system/
+cp bridge-bot.service /usr/lib/systemd/system/

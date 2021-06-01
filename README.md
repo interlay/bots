@@ -82,8 +82,8 @@ bitcoind -testnet -server -maxuploadtarget=200 -blocksonly -rpcuser=rpcuser -rpc
 Ensure that the current directory has a correctly configured `.env.testnet` file, using [this template](https://github.com/interlay/bridge-bot/blob/master/.env.testnet). Pay particular attention to `POLKABTC_BOT_ACCOUNT` (the Substrate mnemonic) and `BITCOIN_RPC_WALLET` (the name of the wallet to use from your Bitcoin node) - these should be dedicated (unique) to just the Bot.
 
 ```shell
-wget https://raw.githubusercontent.com/interlay/polkabtc-docs/master/scripts/bridge-bot/setup
-wget https://raw.githubusercontent.com/interlay/polkabtc-docs/master/scripts/bridge-bot/bridge-bot.service
+wget https://raw.githubusercontent.com/interlay/bridge-bot/master/setup/setup
+wget https://raw.githubusercontent.com/interlay/bridge-bot/master/setup/bridge-bot.service
 chmod +x ./setup && sudo ./setup
 systemctl daemon-reload
 systemctl start bridge-bot.service
