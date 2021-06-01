@@ -7,7 +7,7 @@ sudo cp $(which node) /usr/local/bin
 npm install --global yarn
 
 # Get the latest bot from `master`
-git clone git@github.com:interlay/bridge-bot.git
+git clone https://github.com/interlay/bridge-bot
 
 # Overwrite using the user's `.env.testnet` file
 cp .env.testnet bridge-bot/.env.testnet
