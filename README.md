@@ -21,6 +21,22 @@ You can run the bot with the following options:
                              `heartbeats` flag.       [boolean] [default: false]
 ```
 
+The bot is configured using the following environment variables (check `.env.local` and `.en.testnet`):
+```
+POLKABTC_BOT_ACCOUNT - The mnemonic or seed key of the Substrate account the bot will be using.
+BITCOIN_NETWORK - The bitcoin network to use PolkaBTC on
+BITCOIN_RPC_HOST - Host of your Bitcoin node
+BITCOIN_RPC_USER - RPC username of your Bitcoin node
+BITCOIN_RPC_PASS - RPC password of your Bitcoin node
+BITCOIN_RPC_PORT - RPC port of your Bitcoin node
+BITCOIN_RPC_WALLET - Name of the wallet to use from your Bitcoin node
+ISSUE_TOP_UP_AMOUNT - PolkaBTC to top up by in case the bot is short of PolkaBTC to redeem
+REDEEM_ADDRESS - Bitcoin address to redeem PolkaBTC to
+PARACHAIN_URL - WebSockets URL of the BTC Parachain (use value in `.env.local` or `.en.testnet`)
+STATS_URL - URL of the PolkaBTC stats component (use value in `.env.local` or `.en.testnet`)
+FAUCET_URL - URL of the PolkaBTC faucet component (use value in `.env.local` or `.en.testnet`)
+```
+
 # Setting up a Bot
 
 The following instructions have been tested on Linux.
