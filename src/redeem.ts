@@ -1,5 +1,6 @@
 import { PolkaBTCAPI, btcToSat, stripHexPrefix, BitcoinCoreClient } from "@interlay/polkabtc";
 import { KeyringPair } from "@polkadot/keyring/types";
+import { H256 } from "@polkadot/types/interfaces";
 import * as polkabtcStats from '@interlay/polkabtc-stats';
 import Big from "big.js";
 import BN from "bn.js";
@@ -169,10 +170,14 @@ export class Redeem {
                         vault.id
                     ).catch(error => { throw new Error(error) });
                     const redeemRequestId = requestResult.id.toString();
-                    const opreturnData = stripHexPrefix(redeemRequestId);
 
+                    // Subscribe to redeem expiry
+                    const botAccountId = this.polkaBtc.api.createType("AccountId", account.address);
+                    this.polkaBtc.redeem.subscribeToRedeemExpiry(botAccountId, this.retryRedeem);
+                    
                     // Wait at most `timeoutMinutes` minutes to receive the BTC transaction with the
                     // redeemed funds.
+                    const opreturnData = stripHexPrefix(redeemRequestId);
                     await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, timeoutMinutes * 60000, 5000)
                         .catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
                     this.vaultHeartbeats.set(vault.id.toString(), Date.now());
@@ -181,6 +186,16 @@ export class Redeem {
                 }
 
             }
+        }
+    }
+
+    async retryRedeem(redeemId: H256): Promise<void> {
+        try {
+            console.log(`[${new Date().toLocaleString()}] Retrying redeem with id ${redeemId.toHuman()}...`);
+            // Cancel redeem request and receive DOT compensation
+            await this.polkaBtc.redeem.cancel(redeemId, false);
+        } catch (error) {
+            console.log(`Error: ${error}`);
         }
     }
 
