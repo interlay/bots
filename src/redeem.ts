@@ -150,10 +150,6 @@ export class Redeem {
             console.log(`adding ${redeemId.toHuman()}`);
             this.expiredRedeemRequests.push(redeemId)
         });
-        // Wait for any old expired redeems to be fetched
-        // so as to cancel the request (banning the vault).
-        // This will prevent requesting redeem from that vault.
-        await sleep(10000);
         await this.cancelExpiredRedeems();
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
         const vaults = _.shuffle(await this.polkaBtc.vaults.list());
