@@ -1,4 +1,4 @@
-import { PolkaBTCAPI, btcToSat, stripHexPrefix, BitcoinCoreClient } from "@interlay/polkabtc";
+import { PolkaBTCAPI, btcToSat, stripHexPrefix, BitcoinCoreClient, sleep } from "@interlay/polkabtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { H256 } from "@polkadot/types/interfaces";
 import * as polkabtcStats from '@interlay/polkabtc-stats';
@@ -14,6 +14,7 @@ export class Redeem {
     issue: Issue;
     private redeemDustValue: Big | undefined;
     polkaBtc: PolkaBTCAPI;
+    expiredRedeemRequests: H256[] = [];
     constructor(polkaBtc: PolkaBTCAPI, private issueTopUpAmount = new Big(1)) {
         this.issue = new Issue(polkaBtc);
         this.polkaBtc = polkaBtc;
@@ -143,6 +144,13 @@ export class Redeem {
             console.log("Parachain not connected");
             return;
         }
+        console.log(`[${new Date().toLocaleString()}] -----Cancelling expired redeems-----`);
+        const botAccountId = this.polkaBtc.api.createType("AccountId", account.address);
+        this.polkaBtc.redeem.subscribeToRedeemExpiry(botAccountId, (redeemId: H256) => {
+            console.log(`adding ${redeemId.toHuman()}`);
+            this.expiredRedeemRequests.push(redeemId)
+        });
+        await this.cancelExpiredRedeems();
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
         const vaults = _.shuffle(await this.polkaBtc.vaults.list());
         const bitcoinCoreClient = new BitcoinCoreClient(
@@ -161,8 +169,12 @@ export class Redeem {
         );
         const amountToRedeem = await this.getMinRedeemableAmount();
         for (const vault of vaults) {
-            if (vault.issued_tokens.gte(new BN(btcToSat(amountToRedeem.toString())))) {
-                try {
+            try {
+                const currentBlock = await this.polkaBtc.system.getCurrentBlockNumber();
+                if (vault.banned_until.isSome && vault.banned_until.unwrap().toNumber() >= currentBlock) {
+                    continue;
+                }
+                if (vault.issued_tokens.gte(new BN(btcToSat(amountToRedeem.toString())))) {
                     console.log(`[${new Date().toLocaleString()}] Redeeming ${btcToSat(amountToRedeem.toString())} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
                     const requestResult = await this.polkaBtc.redeem.request(
                         amountToRedeem,
@@ -170,10 +182,6 @@ export class Redeem {
                         vault.id
                     ).catch(error => { throw new Error(error) });
                     const redeemRequestId = requestResult.id.toString();
-
-                    // Subscribe to redeem expiry
-                    const botAccountId = this.polkaBtc.api.createType("AccountId", account.address);
-                    this.polkaBtc.redeem.subscribeToRedeemExpiry(botAccountId, this.retryRedeem);
                     
                     // Wait at most `timeoutMinutes` minutes to receive the BTC transaction with the
                     // redeemed funds.
@@ -181,22 +189,26 @@ export class Redeem {
                     await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, timeoutMinutes * 60000, 5000)
                         .catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
                     this.vaultHeartbeats.set(vault.id.toString(), Date.now());
-                } catch (error) {
-                    console.log(`Error: ${error}`);
                 }
-
+            } catch (error) {
+                console.log(`Error: ${error}`);
             }
         }
     }
 
-    async retryRedeem(redeemId: H256): Promise<void> {
-        try {
-            console.log(`[${new Date().toLocaleString()}] Retrying redeem with id ${redeemId.toHuman()}...`);
-            // Cancel redeem request and receive DOT compensation
-            await this.polkaBtc.redeem.cancel(redeemId, false);
-        } catch (error) {
-            console.log(`Error: ${error}`);
+    async cancelExpiredRedeems(): Promise<void> {
+        const remainingExpiredRequests: H256[] = [];
+        for(const redeemId of this.expiredRedeemRequests) {
+            try {
+                console.log(`[${new Date().toLocaleString()}] Retrying redeem with id ${redeemId.toHuman()}...`);
+                // Cancel redeem request and receive DOT compensation
+                await this.polkaBtc.redeem.cancel(redeemId, false);
+            } catch (error) {
+                remainingExpiredRequests.push(redeemId);
+                console.log(`Error cancelling redeem ${redeemId.toHuman()}... : ${error}`);
+            }
         }
+        this.expiredRedeemRequests = remainingExpiredRequests;
     }
 
     /**
