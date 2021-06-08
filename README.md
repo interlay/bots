@@ -1,11 +1,12 @@
 # Overview
 
-TypeScript utility to load test cross-chain systems based on XCLAIM (currently only targeting PolkaBTC).
+TypeScript utility to load test cross-chain systems based on XCLAIM (currently only targeting interBTC).
 
-This bot is in a very early stage, expect crashes. Bug reports, fixes and suggestions are welcome!
+This bot is in a very early stage. Bug reports, fixes, and suggestions are welcome!
 
 You can run the bot with the following options:
-```
+
+```shell
   --help                     Show help                                 [boolean]
   --version                  Show version number                       [boolean]
   --heartbeats               Try to issue and redeem slightly more than the
@@ -22,7 +23,8 @@ You can run the bot with the following options:
 ```
 
 The bot is configured using the following environment variables (check `.env.local` and `.env.testnet`):
-```
+
+```shell
 POLKABTC_BOT_ACCOUNT - The mnemonic or seed key of the Substrate account the bot will be using.
 BITCOIN_NETWORK - The bitcoin network to use PolkaBTC on
 BITCOIN_RPC_HOST - Host of your Bitcoin node
@@ -44,6 +46,23 @@ The following instructions have been tested on Linux.
 ## Quickstart
 
 Set up the Bot locally using docker-compose. Best if you want to quickly try it out.
+
+### Beta Testnet (beta.polkabtc.io)
+
+```shell
+git clone https://github.com/interlay/bridge-bot
+cd bridge-bot
+yarn install
+set -a
+source .env.testnet
+set +a
+docker-compose -f ./docker-compose.testnet.yml up
+
+# In a different terminal:
+yarn live
+```
+
+### Local Testnet
 
 ```shell
 git clone https://github.com/interlay/bridge-bot
@@ -73,7 +92,7 @@ Download and install a [Bitcoin Core full-node](https://bitcoin.org/en/full-node
 The Relayer requires a Bitcoin node with only part of the data. You can start Bitcoin with the following [optimizations](https://bitcoin.org/en/full-node#what-is-a-full-node):
 
 ```shell
-bitcoind -testnet -server -maxuploadtarget=200 -blocksonly -rpcuser=rpcuser -rpcpassword=rpcpassword
+bitcoind -testnet -server -maxuploadtarget=200 -blocksonly -rpcuser=rpcuser -rpcpassword=rpcpassword -fallbackfee=0.0002
 ```
 
 
