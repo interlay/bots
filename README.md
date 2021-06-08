@@ -53,8 +53,10 @@ Set up the Bot locally using docker-compose. Best if you want to quickly try it 
 git clone https://github.com/interlay/bridge-bot
 cd bridge-bot
 yarn install
+set -a
 source .env.testnet
-docker-compose up # TODO: add bitcoin node
+set +a
+docker-compose -f ./docker-compose.testnet.yml up
 
 # In a different terminal:
 yarn live
@@ -72,8 +74,6 @@ docker-compose up
 # In a different terminal:
 yarn live
 ```
-
-### beta.polkabtc.io
 
 ## Standard Installation
 

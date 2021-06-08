@@ -1,0 +1,20 @@
+version: "3.8"
+services:
+  bitcoind:
+    image: "ruimarinho/bitcoin-core:0.20"
+    command:
+      - -testnet
+      - -server
+      - -par=1
+      - -maxuploadtarget=200
+      - -blocksonly
+      - -rpcbind=0.0.0.0
+      - -rpcallowip=0.0.0.0/0
+      - -rpcuser=rpcuser
+      - -rpcpassword=rpcpassword
+      - -fallbackfee=0.0002
+    ports:
+      - "18332:18332"
+    volumes:
+      - ./cache:/home/bitcoin/.bitcoin/testnet3
+    restart: unless-stopped
