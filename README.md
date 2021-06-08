@@ -14,9 +14,9 @@ You can run the bot with the following options:
                              Mutually exclusive with the
                              `execute-pending-redeems` flag.
                                                        [boolean] [default: true]
-  --per-hour                 Frequency of issuing and redeeming with each vault
-                             in the system. Example: 0.5 => issue and redeem
-                             every two hours.           [number] [default: 0.33]
+  --wait-interval            Delay between rounds of issuing and redeeming with
+                             each vault in the system. Example: 2 => issue and
+                             redeem every two hours.       [number] [default: 8]
   --execute-pending-redeems  Try to execute redeem requests whose BTC payment
                              has already been made. Mutually exclusive with the
                              `heartbeats` flag.       [boolean] [default: false]
