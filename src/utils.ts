@@ -1,4 +1,4 @@
-import { BitcoinCoreClient } from "@interlay/polkabtc";
+import { BitcoinCoreClient } from "@interlay/interbtc";
 
 export async function waitForEmptyMempool(bitcoinCoreClient: BitcoinCoreClient): Promise<void> {
     while((await bitcoinCoreClient.getMempoolInfo()).size === 0) {

@@ -1,44 +1,44 @@
-import { PolkaBTCAPI, btcToSat, stripHexPrefix, BitcoinCoreClient, sleep } from "@interlay/polkabtc";
+import { InterBTCAPI, stripHexPrefix, BitcoinCoreClient, sleep, BitcoinNetwork } from "@interlay/interbtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { H256 } from "@polkadot/types/interfaces";
-import * as polkabtcStats from '@interlay/polkabtc-stats';
+import * as interbtcStats from '@interlay/interbtc-stats-client';
 import Big from "big.js";
-import BN from "bn.js";
 import _ from "underscore";
 
 import { MS_IN_AN_HOUR, LOAD_TEST_REDEEM_AMOUNT } from "./consts";
 import { Issue } from "./issue";
+import { Bitcoin, BTCAmount } from "@interlay/monetary-js";
 
 export class Redeem {
     vaultHeartbeats = new Map<string, number>();
     issue: Issue;
-    private redeemDustValue: Big | undefined;
-    polkaBtc: PolkaBTCAPI;
+    private redeemDustValue: BTCAmount | undefined;
+    interBtc: InterBTCAPI;
     expiredRedeemRequests: H256[] = [];
-    constructor(polkaBtc: PolkaBTCAPI, private issueTopUpAmount = new Big(1)) {
-        this.issue = new Issue(polkaBtc);
-        this.polkaBtc = polkaBtc;
+    constructor(interBtc: InterBTCAPI, private issueTopUpAmount = BTCAmount.from.BTC(1)) {
+        this.issue = new Issue(interBtc);
+        this.interBtc = interBtc;
     }
 
-    async getCachedRedeemDustValue(): Promise<Big> {
+    async getCachedRedeemDustValue(): Promise<BTCAmount> {
         if (!this.redeemDustValue) {
-            this.redeemDustValue = await this.polkaBtc.redeem.getDustValue();
+            this.redeemDustValue = await this.interBtc.redeem.getDustValue();
         }
         return this.redeemDustValue;
     }
 
-    increaseByThirtyPercent(x: Big): Big {
+    increaseByThirtyPercent(x: BTCAmount): BTCAmount {
         return x.mul(new Big(13)).div(new Big(10));
     }
 
-    async getMinimumBalanceForHeartbeat(vaultCount?: number): Promise<Big> {
-        if(!this.polkaBtc.vaults) {
+    async getMinimumBalanceForHeartbeat(vaultCount?: number): Promise<BTCAmount> {
+        if(!this.interBtc.vaults) {
             console.log("Parachain not connected");
-            return new Big(0);
+            return BTCAmount.zero;
         }
         const redeemDustValue = await this.getCachedRedeemDustValue();
         if (vaultCount === undefined) {
-            const vaults = await this.polkaBtc.vaults.list();
+            const vaults = await this.interBtc.vaults.list();
             vaultCount = vaults.length;
         }
         // Assume all vaults are online, so the bot needs more than `redeemDustValue * vaultCount`
@@ -46,10 +46,10 @@ export class Redeem {
         return this.increaseByThirtyPercent(redeemDustValue.mul(new Big(vaultCount)));
     }
 
-    async getMinRedeemableAmount(): Promise<Big> {
+    async getMinRedeemableAmount(): Promise<BTCAmount> {
         const redeemDustValue = await this.getCachedRedeemDustValue();
-        const bitcoinNetworkFees = await this.polkaBtc.redeem.getCurrentInclusionFee();
-        const bridgeFee = await this.polkaBtc.redeem.getFeesToPay(redeemDustValue);
+        const bitcoinNetworkFees = await this.interBtc.redeem.getCurrentInclusionFee();
+        const bridgeFee = await this.interBtc.redeem.getFeesToPay(redeemDustValue);
         // Redeeming exactly `redeemDustValue` fails, so increase this value by 10%
         return this.increaseByThirtyPercent(redeemDustValue).add(bitcoinNetworkFees).add(bridgeFee);
     }
@@ -60,11 +60,11 @@ export class Redeem {
         }
         console.log(`[${new Date().toLocaleString()}] requesting redeem...`);
         try {
-            await this.polkaBtc.redeem.request(new Big(LOAD_TEST_REDEEM_AMOUNT), process.env.REDEEM_ADDRESS as string);
+            await this.interBtc.redeem.request(BTCAmount.from.BTC(LOAD_TEST_REDEEM_AMOUNT), process.env.REDEEM_ADDRESS as string);
             console.log(
                 `[${new Date().toLocaleString()}] Sent redeem request for ${LOAD_TEST_REDEEM_AMOUNT.toFixed(
                     8
-                )} PolkaBTC`
+                )} InterBTC`
             );
         } catch (e) {
             console.log(
@@ -75,11 +75,11 @@ export class Redeem {
 
     async executePendingRedeems(): Promise<void> {
         if (!process.env.STATS_URL) {
-            Promise.reject("polkabtc-stats URL not set in the environment");
+            Promise.reject("interbtc-stats URL not set in the environment");
         }
         console.log(`[${new Date().toLocaleString()}] -----Executing pending redeems-----`);
-        const statsApi = new polkabtcStats.StatsApi(new polkabtcStats.Configuration({ basePath: process.env.STATS_URL as string }));
-        const redeems = (await statsApi.getRedeems(0, Number.MAX_SAFE_INTEGER)).data;
+        const statsApi = new interbtcStats.StatsApi(new interbtcStats.Configuration({ basePath: process.env.STATS_URL as string }));
+        const redeems = (await statsApi.getRedeems({ page: 0, perPage: Number.MAX_SAFE_INTEGER }));
         const expiredRedeemsWithBtcTx = redeems.filter(
             redeem =>
                 !redeem.completed
@@ -88,7 +88,7 @@ export class Redeem {
         )
         for (let request of expiredRedeemsWithBtcTx) {
             try {
-                await this.polkaBtc.redeem.execute(request.id, request.btcTxId);
+                await this.interBtc.redeem.execute(request.id, request.btcTxId);
                 this.vaultHeartbeats.set(request.vaultDotAddress, Date.now());
                 console.log(`Successfully executed redeem ${request.id}`);
             } catch (error) {
@@ -101,12 +101,12 @@ export class Redeem {
         vaultCount: number,
         account: KeyringPair,
         bitcoinCoreClient: BitcoinCoreClient,
-        btcNetwork: string,
+        btcNetwork: BitcoinNetwork,
     ) {
-        const accountId = this.polkaBtc.api.createType("AccountId", account.address);
+        const accountId = this.interBtc.api.createType("AccountId", account.address);
         const minimumBalanceForHeartbeat = await this.getMinimumBalanceForHeartbeat(vaultCount);
-        const redeemablePolkaBTCBalance = await this.polkaBtc.treasury.balance(accountId);
-        if (redeemablePolkaBTCBalance.lte(minimumBalanceForHeartbeat)) {
+        const redeemableInterBTCBalance = await this.interBtc.tokens.balance(Bitcoin, accountId);
+        if (redeemableInterBTCBalance.lte(minimumBalanceForHeartbeat)) {
             console.log(`[${new Date().toLocaleString()}] -----Issuing tokens to redeem later-----`);
             this.issue.requestAndExecuteIssue(
                 account,
@@ -136,23 +136,23 @@ export class Redeem {
         btcRpcPort: string,
         btcRpcUser: string,
         btcRpcPass: string,
-        btcNetwork: string,
+        btcNetwork: BitcoinNetwork,
         btcRpcWallet: string,
         timeoutMinutes = 2
     ): Promise<void> {
-        if(!this.polkaBtc.vaults) {
+        if(!this.interBtc.vaults) {
             console.log("Parachain not connected");
             return;
         }
         console.log(`[${new Date().toLocaleString()}] -----Cancelling expired redeems-----`);
-        const botAccountId = this.polkaBtc.api.createType("AccountId", account.address);
-        this.polkaBtc.redeem.subscribeToRedeemExpiry(botAccountId, (redeemId: H256) => {
-            console.log(`adding ${redeemId.toHuman()}`);
-            this.expiredRedeemRequests.push(redeemId)
+        const botAccountId = this.interBtc.api.createType("AccountId", account.address);
+        this.interBtc.redeem.subscribeToRedeemExpiry(botAccountId, (requestRedeemId: H256) => {
+            console.log(`adding ${requestRedeemId.toHuman()}`);
+            this.expiredRedeemRequests.push(requestRedeemId)
         });
         await this.cancelExpiredRedeems();
         console.log(`[${new Date().toLocaleString()}] -----Performing heartbeat redeems-----`);
-        const vaults = _.shuffle(await this.polkaBtc.vaults.list());
+        const vaults = _.shuffle(await this.interBtc.vaults.list());
         const bitcoinCoreClient = new BitcoinCoreClient(
             btcNetwork,
             btcHost,
@@ -170,13 +170,13 @@ export class Redeem {
         const amountToRedeem = await this.getMinRedeemableAmount();
         for (const vault of vaults) {
             try {
-                const currentBlock = await this.polkaBtc.system.getCurrentBlockNumber();
+                const currentBlock = await this.interBtc.system.getCurrentBlockNumber();
                 if (vault.banned_until.isSome && vault.banned_until.unwrap().toNumber() >= currentBlock) {
                     continue;
                 }
-                if (vault.issued_tokens.gte(new BN(btcToSat(amountToRedeem.toString())))) {
-                    console.log(`[${new Date().toLocaleString()}] Redeeming ${btcToSat(amountToRedeem.toString())} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
-                    const requestResult = await this.polkaBtc.redeem.request(
+                if (BTCAmount.from.Satoshi(vault.issued_tokens.toString()).gte(amountToRedeem)) {
+                    console.log(`[${new Date().toLocaleString()}] Redeeming ${amountToRedeem.str.Satoshi()} out of ${vault.issued_tokens} InterSatoshi from ${vault.id.toString()}`);
+                    const [requestResult] = await this.interBtc.redeem.request(
                         amountToRedeem,
                         redeemAddress,
                         vault.id
@@ -186,7 +186,7 @@ export class Redeem {
                     // Wait at most `timeoutMinutes` minutes to receive the BTC transaction with the
                     // redeemed funds.
                     const opreturnData = stripHexPrefix(redeemRequestId);
-                    await this.polkaBtc.electrsAPI.waitForOpreturn(opreturnData, timeoutMinutes * 60000, 5000)
+                    await this.interBtc.electrsAPI.waitForOpreturn(opreturnData, timeoutMinutes * 60000, 5000)
                         .catch(_ => { throw new Error(`Redeem request was not executed, timeout expired`) });
                     this.vaultHeartbeats.set(vault.id.toString(), Date.now());
                 }
@@ -202,7 +202,7 @@ export class Redeem {
             try {
                 console.log(`[${new Date().toLocaleString()}] Retrying redeem with id ${redeemId.toHuman()}...`);
                 // Cancel redeem request and receive DOT compensation
-                await this.polkaBtc.redeem.cancel(redeemId, false);
+                await this.interBtc.redeem.cancel(redeemId.toString(), false);
             } catch (error) {
                 remainingExpiredRequests.push(redeemId);
                 console.log(`Error cancelling redeem ${redeemId.toHuman()}... : ${error}`);

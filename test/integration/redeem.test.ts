@@ -3,11 +3,12 @@ import { Keyring } from "@polkadot/api";
 import { Redeem } from "../../src/redeem";
 import {
     BitcoinCoreClient,
-    createPolkabtcAPI,
-    PolkaBTCAPI,
-} from "@interlay/polkabtc";
+    createInterbtcAPI,
+    InterBTCAPI,
+} from "@interlay/interbtc";
 import { DEFAULT_PARACHAIN_ENDPOINT } from "../config";
 import chai from "chai";
+import { Bitcoin } from "@interlay/monetary-js";
 
 let produceBlocksFlag = false;
 
@@ -24,7 +25,7 @@ async function produceBlocks(bitcoinCoreClient: BitcoinCoreClient, delayMs: numb
 }
 
 describe("redeem", () => {
-    let polkaBtc: PolkaBTCAPI;
+    let interBtc: InterBTCAPI;
     let alice: KeyringPair;
     let bob: KeyringPair;
     let charlie_stash: KeyringPair;
@@ -36,13 +37,13 @@ describe("redeem", () => {
     let vaultList: string[];
 
     before(async () => {
-        polkaBtc = await createPolkabtcAPI(DEFAULT_PARACHAIN_ENDPOINT, "regtest");
+        interBtc = await createInterbtcAPI(DEFAULT_PARACHAIN_ENDPOINT, "regtest");
         keyring = new Keyring({ type: "sr25519" });
         alice = keyring.addFromUri("//Alice");
         bob = keyring.addFromUri("//Bob");
         charlie_stash = keyring.addFromUri("//Charlie//stash");
         dave_stash = keyring.addFromUri("//Dave//stash");
-        polkaBtc.setAccount(alice);
+        interBtc.setAccount(alice);
         vaultList = [charlie_stash.address, dave_stash.address]
         redeemBtcAddress = "bcrt1qed0qljupsmqhxul67r7358s60reqa2qtte0kay";
         bitcoinCoreClient = new BitcoinCoreClient(
@@ -62,11 +63,11 @@ describe("redeem", () => {
 
     after(() => {
         produceBlocksFlag = false;
-        return polkaBtc.api.disconnect();
+        return interBtc.api.disconnect();
     });
 
     it("should perform heartbeat redeems", async () => {
-        redeem = new Redeem(polkaBtc);
+        redeem = new Redeem(interBtc);
         await redeem.performHeartbeatRedeems(
             alice,
             redeemBtcAddress,
@@ -82,8 +83,8 @@ describe("redeem", () => {
     });
 
     it("should issue tokens to be able to redeem", async () => {
-        redeem = new Redeem(polkaBtc);
-        const tokenBalance = await polkaBtc.treasury.balance(polkaBtc.api.createType("AccountId", bob.address));
+        redeem = new Redeem(interBtc);
+        const tokenBalance = await interBtc.tokens.balance(Bitcoin, interBtc.api.createType("AccountId", bob.address));
         chai.assert.equal(tokenBalance.toString(), "0");
 
         // Redeems should still work if the user has enough collateral to issue first

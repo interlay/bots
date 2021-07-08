@@ -1,16 +1,17 @@
 import {
-    createPolkabtcAPI,
-    PolkaBTCAPI,
+    BitcoinNetwork,
+    createInterbtcAPI,
+    InterBTCAPI,
     sleep,
-} from "@interlay/polkabtc";
+} from "@interlay/interbtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
-import Big from "big.js";
 import {cryptoWaitReady} from "@polkadot/util-crypto";
 
 import { MS_IN_AN_HOUR } from "./consts";
 import { Issue } from "./issue";
 import { Redeem } from "./redeem";
+import { BTCAmount } from "@interlay/monetary-js";
 
 const yargs = require('yargs/yargs')
 const { hideBin } = require('yargs/helpers')
@@ -54,17 +55,17 @@ main(...parseArgs(argv))
         console.log(err);
     });
 
-function connectToParachain(): Promise<PolkaBTCAPI> {
+function connectToParachain(): Promise<InterBTCAPI> {
     if (!process.env.BITCOIN_NETWORK || !process.env.PARACHAIN_URL) {
         Promise.reject("Parachain URL and Bitcoin network environment variables not set");
     }
-    return createPolkabtcAPI(process.env.PARACHAIN_URL as string, process.env.BITCOIN_NETWORK);
+    return createInterbtcAPI(process.env.PARACHAIN_URL as string, process.env.BITCOIN_NETWORK as BitcoinNetwork);
 }
 
 async function heartbeats(account: KeyringPair, redeemAddress: string): Promise<void> {
     try {
-        const polkaBtcApi = await connectToParachain();
-        polkaBtcApi.setAccount(account);
+        const interBtcApi = await connectToParachain();
+        interBtcApi.setAccount(account);
         if (
             !process.env.BITCOIN_RPC_HOST
             || !process.env.BITCOIN_RPC_PORT
@@ -77,17 +78,17 @@ async function heartbeats(account: KeyringPair, redeemAddress: string): Promise<
         ) {
             console.log("Bitcoin Node environment variables not set. Not performing issue and redeem heartbeats.");
         } else {
-            const issue = new Issue(polkaBtcApi);
+            const issue = new Issue(interBtcApi);
             await issue.performHeartbeatIssues(
                 account,
                 process.env.BITCOIN_RPC_HOST,
                 process.env.BITCOIN_RPC_PORT,
                 process.env.BITCOIN_RPC_USER,
                 process.env.BITCOIN_RPC_PASS,
-                process.env.BITCOIN_NETWORK,
+                process.env.BITCOIN_NETWORK as BitcoinNetwork,
                 process.env.BITCOIN_RPC_WALLET
             );
-            const redeem = new Redeem(polkaBtcApi, new Big(process.env.ISSUE_TOP_UP_AMOUNT as string));
+            const redeem = new Redeem(interBtcApi, BTCAmount.from.BTC(process.env.ISSUE_TOP_UP_AMOUNT));
             await redeem.performHeartbeatRedeems(
                 account,
                 redeemAddress,
@@ -95,7 +96,7 @@ async function heartbeats(account: KeyringPair, redeemAddress: string): Promise<
                 process.env.BITCOIN_RPC_PORT,
                 process.env.BITCOIN_RPC_USER,
                 process.env.BITCOIN_RPC_PASS,
-                process.env.BITCOIN_NETWORK,
+                process.env.BITCOIN_NETWORK as BitcoinNetwork,
                 process.env.BITCOIN_RPC_WALLET
             );
             const aliveVaults = await redeem.getAliveVaults();
@@ -108,12 +109,12 @@ async function heartbeats(account: KeyringPair, redeemAddress: string): Promise<
 }
 
 async function main(inputFlag: InputFlag, requestWaitingTime: number) {
-    if (!process.env.POLKABTC_BOT_ACCOUNT) {
+    if (!process.env.INTERBTC_BOT_ACCOUNT) {
         Promise.reject("Bot account mnemonic not set in the environment");
     }
     await cryptoWaitReady();
     await sleep(5000);
-    let account = keyring.addFromUri(`${process.env.POLKABTC_BOT_ACCOUNT}`);
+    let account = keyring.addFromUri(`${process.env.INTERBTC_BOT_ACCOUNT}`);
     console.log(`Bot account: ${account.address}`);
     console.log(`Waiting time between bot runs: ${requestWaitingTime / (60 * 60 * 1000)} hours`);
     
@@ -122,9 +123,9 @@ async function main(inputFlag: InputFlag, requestWaitingTime: number) {
             if (!process.env.REDEEM_ADDRESS) {
                 Promise.reject("Redeem Bitcoin address not set in the environment");
             }
-            const polkaBtcApi = await connectToParachain();
-            polkaBtcApi.setAccount(account);
-            const redeem = new Redeem(polkaBtcApi);
+            const interBtcApi = await connectToParachain();
+            interBtcApi.setAccount(account);
+            const redeem = new Redeem(interBtcApi);
             await redeem.executePendingRedeems();
             break;
         }
