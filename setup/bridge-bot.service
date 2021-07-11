@@ -1,11 +1,11 @@
 [Unit]
-Description=Bot for load testing PolkaBTC
+Description=Bot for load testing InterBTC
 After=network.target
 
 [Service]
-EnvironmentFile=/opt/polkabtc/bridge-bot/.env.testnet
+EnvironmentFile=/opt/interbtc/bridge-bot/.env.testnet
 Type=simple
-ExecStart=/usr/local/bin/node /opt/polkabtc/bridge-bot/build/index.js
+ExecStart=/usr/local/bin/node /opt/interbtc/bridge-bot/build/index.js
 Restart=on-failure
 RestartSec=5
 

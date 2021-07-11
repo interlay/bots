@@ -18,11 +18,11 @@ yarn install
 yarn build
 cd ../
 
-[ -d /opt/polkabtc ] || mkdir /opt/polkabtc
+[ -d /opt/interbtc ] || mkdir /opt/interbtc
 # If a previous bridge-bot exists, remove it
-sudo rm -rf /opt/polkabtc/bridge-bot
+sudo rm -rf /opt/interbtc/bridge-bot
 # Copy the newly compiled version
-cp -r bridge-bot /opt/polkabtc/
+cp -r bridge-bot /opt/interbtc/
 
 [ -d /usr/lib/systemd/system/ ] || mkdir /usr/lib/systemd/system/
 cp bridge-bot.service /usr/lib/systemd/system/
