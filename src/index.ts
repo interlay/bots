@@ -3,7 +3,7 @@ import {
     createInterbtcAPI,
     InterBTCAPI,
     sleep,
-} from "@interlay/interbtc";
+} from "@interlay/interbtc"
 import { KeyringPair } from "@polkadot/keyring/types";
 import { Keyring } from "@polkadot/api";
 import {cryptoWaitReady} from "@polkadot/util-crypto";
@@ -120,13 +120,14 @@ async function main(inputFlag: InputFlag, requestWaitingTime: number) {
     
     switch(inputFlag) {
         case(InputFlag.executePendingRedeems): {
-            if (!process.env.REDEEM_ADDRESS) {
-                Promise.reject("Redeem Bitcoin address not set in the environment");
-            }
-            const interBtcApi = await connectToParachain();
-            interBtcApi.setAccount(account);
-            const redeem = new Redeem(interBtcApi);
-            await redeem.executePendingRedeems();
+            // TODO: Uncomment once index client is finalised
+            // if (!process.env.REDEEM_ADDRESS) {
+            //     Promise.reject("Redeem Bitcoin address not set in the environment");
+            // }
+            // const interBtcApi = await connectToParachain();
+            // interBtcApi.setAccount(account);
+            // const redeem = new Redeem(interBtcApi);
+            // await redeem.executePendingRedeems();
             break;
         }
         case(InputFlag.heartbeats): {

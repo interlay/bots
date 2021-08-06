@@ -19,8 +19,8 @@
     },
     "engineStrict": true,
     "dependencies": {
-        "@interlay/interbtc": "0.20.1",
-        "@interlay/interbtc-stats-client": "0.4.1",
+        "@interlay/interbtc": "0.21.1",
+        "@interlay/interbtc-index-client": "0.5.1",
         "@interlay/monetary-js": "0.2.1",
         "@types/big.js": "6.1.1",
         "@types/node": "^14.14.31",

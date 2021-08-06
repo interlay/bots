@@ -1,7 +1,7 @@
 import { InterBTCAPI, stripHexPrefix, BitcoinCoreClient, sleep, BitcoinNetwork } from "@interlay/interbtc";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { H256 } from "@polkadot/types/interfaces";
-import * as interbtcStats from '@interlay/interbtc-stats-client';
+import * as interbtcStats from '@interlay/interbtc-index-client';
 import Big from "big.js";
 import _ from "underscore";
 
@@ -73,29 +73,29 @@ export class Redeem {
         }
     }
 
-    async executePendingRedeems(): Promise<void> {
-        if (!process.env.STATS_URL) {
-            Promise.reject("interbtc-stats URL not set in the environment");
-        }
-        console.log(`[${new Date().toLocaleString()}] -----Executing pending redeems-----`);
-        const statsApi = new interbtcStats.StatsApi(new interbtcStats.Configuration({ basePath: process.env.STATS_URL as string }));
-        const redeems = (await statsApi.getRedeems({ page: 0, perPage: Number.MAX_SAFE_INTEGER }));
-        const expiredRedeemsWithBtcTx = redeems.filter(
-            redeem =>
-                !redeem.completed
-                && !redeem.cancelled
-                && redeem.btcTxId !== ""
-        )
-        for (let request of expiredRedeemsWithBtcTx) {
-            try {
-                await this.interBtc.redeem.execute(request.id, request.btcTxId);
-                this.vaultHeartbeats.set(request.vaultDotAddress, Date.now());
-                console.log(`Successfully executed redeem ${request.id}`);
-            } catch (error) {
-                console.log(`Failed to execute redeem ${request.id}: ${error.toString()}`);
-            }
-        }
-    }
+    // async executePendingRedeems(): Promise<void> {
+    //     if (!process.env.STATS_URL) {
+    //         Promise.reject("interbtc-stats URL not set in the environment");
+    //     }
+    //     console.log(`[${new Date().toLocaleString()}] -----Executing pending redeems-----`);
+    //     const statsApi = new interbtcStats.StatsApi(new interbtcStats.Configuration({ basePath: process.env.STATS_URL as string }));
+    //     const redeems = (await statsApi.getRedeems({ page: 0, perPage: Number.MAX_SAFE_INTEGER }));
+    //     const expiredRedeemsWithBtcTx = redeems.filter(
+    //         redeem =>
+    //             !redeem.completed
+    //             && !redeem.cancelled
+    //             && redeem.btcTxId !== ""
+    //     )
+    //     for (let request of expiredRedeemsWithBtcTx) {
+    //         try {
+    //             await this.interBtc.redeem.execute(request.id, request.btcTxId);
+    //             this.vaultHeartbeats.set(request.vaultDotAddress, Date.now());
+    //             console.log(`Successfully executed redeem ${request.id}`);
+    //         } catch (error) {
+    //             console.log(`Failed to execute redeem ${request.id}: ${error.toString()}`);
+    //         }
+    //     }
+    // }
 
     async issueIfNeeded(
         vaultCount: number,
