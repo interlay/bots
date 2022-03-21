@@ -7,3 +7,4 @@ src/**.js
 *.log
 .env
 .vscode
+local-setup/

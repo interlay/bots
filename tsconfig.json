@@ -1,36 +1,24 @@
 {
-    "compilerOptions": {
-        "skipLibCheck": true,
-        "target": "es6",
-        "module": "commonjs",
-        "outDir": "build",
-        "declaration": true,
-        "strict": true,
-        "noImplicitAny": true,
-        "esModuleInterop": true,
-        "baseUrl": ".",
-        "resolveJsonModule": true,
-        // Generate files for debugging
-        "sourceMap": true,
-        "lib": [
-            "ES2019"
-        ],
-        "paths": {
-            "@interlay/interbtc/*": [
-                "src/*"
-            ],
-            "@polkadot/api/augment": [
-                "src/interfaces/augment-api.ts"
-            ],
-            "@polkadot/types/augment": [
-                "src/interfaces/augment-types.ts"
-            ]
-        }
-    },
-    "include": [
-        "src"
-    ],
-    "exclude": [
-        "./node_modules/*"
-    ]
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "target": "es6",
+    "module": "commonjs",
+    "outDir": "build",
+    "declaration": true,
+    "strict": true,
+    "noImplicitAny": true,
+    "esModuleInterop": true,
+    "baseUrl": ".",
+    "resolveJsonModule": true,
+    // Generate files for debugging
+    "sourceMap": true,
+    "lib": ["ES2019"],
+    "paths": {
+      "@interlay/interbtc/*": ["src/*"],
+      "@polkadot/api/augment": ["src/interfaces/augment-api.ts"],
+      "@polkadot/types/augment": ["src/interfaces/augment-types.ts"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["./node_modules/*"]
 }
