@@ -95,7 +95,6 @@ The Relayer requires a Bitcoin node with only part of the data. You can start Bi
 bitcoind -testnet -server -maxuploadtarget=200 -blocksonly -rpcuser=rpcuser -rpcpassword=rpcpassword -fallbackfee=0.0002
 ```
 
-
 ### 3. Install and start the Bot
 
 Ensure that the current directory has a correctly configured `.env.testnet` file, using [this template](https://github.com/interlay/bridge-bot/blob/master/.env.testnet). Pay particular attention to `INTERBTC_BOT_ACCOUNT` (the Substrate mnemonic) and `BITCOIN_RPC_WALLET` (the name of the wallet to use from your Bitcoin node) - these should be dedicated (unique) to just the Bot.
