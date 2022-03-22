@@ -18,6 +18,5 @@ jobs:
           username: ${{ secrets.GITLAB_USERNAME }}
           password: ${{ secrets.GITLAB_TOKEN }}
       - name: Run and set up the parachain, oracle, staked relayer and vault
-        run: docker-compose up -d
-      - run: yarn install
-      - run: yarn test
+        run: yarn install && yarn docker-parachain-start
+      - run: yarn install && yarn test
