@@ -14,6 +14,6 @@
     "sourceMap": true,
     "lib": ["ES2019"],
   },
-    "include": ["bots/**/src/**/*"],
-    "exclude": ["**/node_modules/**/*"]
+  "include": ["src"],
+  "exclude": ["./node_modules/*"]
 }

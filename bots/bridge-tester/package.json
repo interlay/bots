@@ -1,0 +1,47 @@
+{
+    "name": "bridge-tester",
+    "version": "0.0.2",
+    "description": "Bot for testing the Interlay and Kintsugi bridges.",
+    "main": "build/index.js",
+    "typings": "build/index.d.ts",
+    "repository": "https://github.com/interlay/bots/bridge-tester",
+    "author": "Interlay",
+    "license": "Apache-2.0",
+  "engines": {
+    "node": ">=11"
+  },
+  "engineStrict": true,
+
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node ./build/index.js",
+    "live": "ts-node src/index.ts",
+    "test": "run-s build test:*",
+    "test:integration": "mocha test/**/*.test.ts --timeout 10000000"
+  },
+  "dependencies": {
+    "@interlay/interbtc-api": "1.8.3",
+    "@interlay/monetary-js": "0.5.3",
+    "@types/big.js": "6.1.2",
+    "@types/node": "^14.14.31",
+    "@types/underscore": "^1.11.2",
+    "@types/yargs": "^16.0.1",
+    "big.js": "6.1.1",
+    "bitcoinjs-lib": "^5.2.0",
+    "dotenv": "^10.0.0",
+    "npm-run-all": "^4.1.5",
+    "typescript": "^4.3.2",
+    "underscore": "^1.13.1",
+    "yargs": "^17.0.1",
+    "pino": "^7.5.1"
+  },
+  "mocha": {
+    "reporter": "spec",
+    "require": "ts-node/register",
+    "watch-files": [
+      "src/**/*.ts",
+      "test/**/*.ts"
+    ],
+    "recursive": true
+  }
+}
