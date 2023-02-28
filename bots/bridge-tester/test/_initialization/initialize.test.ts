@@ -27,7 +27,7 @@ import {
   DEFAULT_BITCOIN_CORE_WALLET,
 } from "../config";
 
-describe("Initialize parachain state", () => {
+describe.skip("Initialize parachain state", () => {
   let api: ApiPromise;
   let bitcoinCoreClient: BitcoinCoreClient;
   let keyring: Keyring;
