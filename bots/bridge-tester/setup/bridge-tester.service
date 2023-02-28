@@ -3,9 +3,9 @@ Description=Bot for load testing InterBTC
 After=network.target
 
 [Service]
-EnvironmentFile=/opt/interbtc/bridge-bot/.env.testnet
+EnvironmentFile=/opt/interbtc/bots/bridge-tester.env.testnet
 Type=simple
-ExecStart=/usr/local/bin/node /opt/interbtc/bridge-bot/build/index.js
+ExecStart=/usr/local/bin/node /opt/interbtc/bots/bridge-testerbuild/index.js
 Restart=on-failure
 RestartSec=5
 

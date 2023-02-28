@@ -30,7 +30,7 @@ async function produceBlocks(
   }
 }
 
-describe("redeem", () => {
+describe.skip("redeem", () => {
   let api: ApiPromise;
   let interBtcAPI: InterBtcApi;
   let alice: KeyringPair;

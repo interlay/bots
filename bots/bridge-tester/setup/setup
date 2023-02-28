@@ -7,22 +7,23 @@ sudo cp $(which node) /usr/local/bin
 npm install --global yarn
 
 # Get the latest bot from `master`
-git clone https://github.com/interlay/bridge-bot
+git clone https://github.com/interlay/bots
+cd bots
 
 # Overwrite using the user's `.env.testnet` file
-cp .env.testnet bridge-bot/.env.testnet
+cp .env.testnet bridge-tester/.env.testnet
 
 # Build
-cd bridge-bot
+cd bridge-tester
 yarn install
 yarn build
 cd ../
 
 [ -d /opt/interbtc ] || mkdir /opt/interbtc
-# If a previous bridge-bot exists, remove it
-sudo rm -rf /opt/interbtc/bridge-bot
+# If a previous bridge-tester exists, remove it
+sudo rm -rf /opt/interbtc/bridge-tester
 # Copy the newly compiled version
-cp -r bridge-bot /opt/interbtc/
+cp -r bridge-tester /opt/interbtc/
 
 [ -d /usr/lib/systemd/system/ ] || mkdir /usr/lib/systemd/system/
-cp bridge-bot.service /usr/lib/systemd/system/
+cp bridge-tester.service /usr/lib/systemd/system/
