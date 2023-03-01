@@ -1,5 +1,7 @@
 
-import { CurrencyExt, InterBtcApi, storageKeyToNthInner, getStorageMapItemKey, createExchangeRateOracleKey, setStorageAtKey } from "@interlay/interbtc-api";
+import { CurrencyExt, InterBtcApi, storageKeyToNthInner, getStorageMapItemKey, createExchangeRateOracleKey, setStorageAtKey, sleep, SLEEP_TIME_MS } from "@interlay/interbtc-api";
+
+import { ApiPromise } from "@polkadot/api";
 
 export async function setExchangeRate(
     sudoInterBtcAPI: InterBtcApi,
@@ -23,4 +25,26 @@ export async function setExchangeRate(
 
     const exchangeRateStorageKey = getStorageMapItemKey("Oracle", "Aggregate", exchangeRateOracleKey.toHex());
     await setStorageAtKey(sudoInterBtcAPI.api, exchangeRateStorageKey, newExchangeRateHex, sudoAccount);
+}
+
+export async function waitForNthBlock(api: ApiPromise, n: number = 2): Promise<void> {
+    while (true) {
+        const currentBlockNo = await api.query.system.number();
+        if (currentBlockNo.toNumber() >= n) {
+            return;
+        }
+        console.log(`Waiting for ${n} blocks to be produced... Current block is ${currentBlockNo}`);
+        await sleep(SLEEP_TIME_MS);
+    }
+}
+
+export async function waitRegisteredLendingMarkets(api: ApiPromise): Promise<void> {
+    while (true) {
+        const currentBlockNo = await api.query.loans.markets.entries();
+        if (currentBlockNo.length > 0) {
+            return;
+        }
+        console.log(`Waiting for lending markets to be registered`);
+        await sleep(SLEEP_TIME_MS);
+    }
 }

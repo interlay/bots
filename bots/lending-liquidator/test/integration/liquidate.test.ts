@@ -5,7 +5,7 @@ import { AccountId } from "@polkadot/types/interfaces";
 import { expect } from "chai";
 
 import { APPROX_BLOCK_TIME_MS, DEFAULT_PARACHAIN_ENDPOINT, DEFAULT_SUDO_URI, DEFAULT_USER_1_URI, DEFAULT_USER_2_URI } from "../config";
-import { setExchangeRate } from "../utils";
+import { setExchangeRate, waitForNthBlock, waitRegisteredLendingMarkets } from "../utils";
 
 describe("liquidate", () => {
     const approx10Blocks = 10 * APPROX_BLOCK_TIME_MS;
@@ -32,13 +32,8 @@ describe("liquidate", () => {
     let underlyingCurrency3: CurrencyExt;
 
     before(async function () {
-        // Sleep for 30s while the parachain is registering
-        // TODO: Check the chain state for when the parachain has already produces a few blocks
-        const sleepTimeMs = 30_000;
-        await sleep(sleepTimeMs);
-        this.timeout(approx10Blocks + sleepTimeMs);
-
         api = await createSubstrateAPI(DEFAULT_PARACHAIN_ENDPOINT);
+        await waitForNthBlock(api);
         keyring = new Keyring({ type: "sr25519" });
         userAccount = keyring.addFromUri(DEFAULT_USER_1_URI);
         user2Account = keyring.addFromUri(DEFAULT_USER_2_URI);
@@ -108,13 +103,14 @@ describe("liquidate", () => {
         ]);
 
         const [eventFound] = await Promise.all([
-            DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.sudo.Sudid, approx10Blocks),
+            DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.ActivatedMarket, approx10Blocks),
             api.tx.sudo.sudo(addMarkets).signAndSend(sudoAccount),
         ]);
         expect(
             eventFound,
             `Sudo event to create new market not found - timed out after ${approx10Blocks} ms`
         ).to.be.true;
+        await waitRegisteredLendingMarkets(api);
     });
 
     after(async () => {
