@@ -14,8 +14,7 @@ import {
   newMonetaryAmount,
   InterbtcPrimitivesVaultId,
   newVaultId,
-  CollateralCurrency,
-  getCorrespondingCollateralCurrency,
+  CollateralCurrencyExt,
 } from "@interlay/interbtc-api";
 import {
   DEFAULT_PARACHAIN_ENDPOINT,
@@ -33,7 +32,7 @@ describe.skip("Initialize parachain state", () => {
   let keyring: Keyring;
   let interBtcAPI: InterBtcApi;
   let wrappedCurrency: WrappedCurrency;
-  let collateralCurrency: CollateralCurrency;
+  let collateralCurrency: CollateralCurrencyExt;
   let vault_id: InterbtcPrimitivesVaultId;
 
   let alice: KeyringPair;
@@ -62,9 +61,7 @@ describe.skip("Initialize parachain state", () => {
     );
     interBtcAPI = new DefaultInterBtcApi(api, "regtest", alice);
     wrappedCurrency = interBtcAPI.getWrappedCurrency();
-    collateralCurrency = getCorrespondingCollateralCurrency(
-      interBtcAPI.getGovernanceCurrency()
-    );
+    collateralCurrency = interBtcAPI.api.consts.currency.getRelayChainCurrencyId;
     vault_id = newVaultId(
       api,
       charlie_stash.address,

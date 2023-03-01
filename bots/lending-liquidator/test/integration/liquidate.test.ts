@@ -17,8 +17,9 @@ describe("liquidate", () => {
 
     let userAccount: KeyringPair;
     let user2Account: KeyringPair;
-    let sudoAccount: KeyringPair;
     let userAccountId: AccountId;
+    let sudoAccount: KeyringPair;
+    let sudoAccountId: AccountId;
 
     let lendTokenId1: InterbtcPrimitivesCurrencyId;
     let lendTokenId2: InterbtcPrimitivesCurrencyId;
@@ -41,6 +42,7 @@ describe("liquidate", () => {
         user2InterBtcAPI = new DefaultInterBtcApi(api, "regtest", user2Account);
 
         sudoAccount = keyring.addFromUri(DEFAULT_SUDO_URI);
+        sudoAccountId = newAccountId(api, sudoAccount.address);
         sudoInterBtcAPI = new DefaultInterBtcApi(api, "regtest", sudoAccount);
         userAccountId = newAccountId(api, userAccount.address);
         lendTokenId1 = newCurrencyId(api, { lendToken: { id: 1 } } as LendToken);
@@ -48,9 +50,11 @@ describe("liquidate", () => {
         lendTokenId3 = newCurrencyId(api, { lendToken: { id: 3 } } as LendToken);
 
         underlyingCurrencyId1 = api.consts.escrowRewards.getNativeCurrencyId;
-        currencyIdToMonetaryCurrency(sudoInterBtcAPI.assetRegistry, sudoInterBtcAPI.loans, underlyingCurrencyId1);
+        underlyingCurrency1 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.assetRegistry, sudoInterBtcAPI.loans, underlyingCurrencyId1);
         underlyingCurrencyId2 = api.consts.currency.getRelayChainCurrencyId;
+        underlyingCurrency2 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.assetRegistry, sudoInterBtcAPI.loans, underlyingCurrencyId2);
         underlyingCurrencyId3 = api.consts.currency.getWrappedCurrencyId;
+        underlyingCurrency3 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.assetRegistry, sudoInterBtcAPI.loans, underlyingCurrencyId3);
 
         const percentageToPermill = (percentage: number) => percentage * 10000;
 
@@ -114,21 +118,33 @@ describe("liquidate", () => {
     });
 
     it("should lend expected amount of currency to protocol", async function () {
-        this.timeout(approx10Blocks);
+        this.timeout(20 * approx10Blocks);
 
         const depositAmount = newMonetaryAmount(1000, underlyingCurrency1, true);
         const borrowAmount1 = newMonetaryAmount(100, underlyingCurrency2, true);
-        const borrowAmount2 = newMonetaryAmount(100, underlyingCurrency3, true);
+        const borrowAmount2 = newMonetaryAmount(1, underlyingCurrency3, true);
 
         await userInterBtcAPI.loans.lend(underlyingCurrency1, depositAmount);
         await userInterBtcAPI.loans.enableAsCollateral(underlyingCurrency1);
 
+        // Deposit cash in the currencies to be borrowed by the user
+        await sudoInterBtcAPI.loans.lend(borrowAmount1.currency, borrowAmount1);
+        // Mint some `borrowAmount2.currency` to the sudo account to ensure the tx works
+        await sudoInterBtcAPI.tokens.setBalance(
+            sudoAccountId,
+            borrowAmount2,
+            borrowAmount2.withAmount(0)
+        );
+        await sudoInterBtcAPI.loans.lend(borrowAmount2.currency, borrowAmount2);
+
+        // Borrow
         await userInterBtcAPI.loans.borrow(borrowAmount1.currency, borrowAmount1);
         await userInterBtcAPI.loans.borrow(borrowAmount2.currency, borrowAmount2);
 
         // start liquidation listener
+        // lendingLiquidationChecker(user2InterBtcAPI)
         // TODO!: start the bot listener logic
-        const liquidationEventFoundPromise = DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.sudo.Sudid, approx10Blocks),
+        const liquidationEventFoundPromise = DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.LiquidatedBorrow, approx10Blocks);
 
         // crash the collateral exchange rate
         const newExchangeRate = "0x00000000000000000001000000000000";

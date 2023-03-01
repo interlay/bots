@@ -7,11 +7,12 @@ import {
   InterBtcApi,
   DefaultInterBtcApi,
   WrappedCurrency,
+  newMonetaryAmount,
 } from "@interlay/interbtc-api";
 import { DEFAULT_ISSUE_TOP_UP_AMOUNT, DEFAULT_PARACHAIN_ENDPOINT } from "../config";
 import chai from "chai";
 import logger from "../../src/logger";
-import { BitcoinAmount } from "@interlay/monetary-js";
+import { Bitcoin } from "@interlay/monetary-js";
 
 let produceBlocksFlag = false;
 
@@ -78,7 +79,7 @@ describe.skip("redeem", () => {
   it("should perform heartbeat redeems", async () => {
     redeem = new Redeem(
       interBtcAPI,
-      BitcoinAmount.from.BTC(DEFAULT_ISSUE_TOP_UP_AMOUNT)
+      newMonetaryAmount(DEFAULT_ISSUE_TOP_UP_AMOUNT, Bitcoin, true)
     );
     await redeem.performHeartbeatRedeems(
       alice,
@@ -97,7 +98,7 @@ describe.skip("redeem", () => {
   it("should issue tokens to be able to redeem", async () => {
     redeem = new Redeem(
       interBtcAPI,
-      BitcoinAmount.from.BTC(DEFAULT_ISSUE_TOP_UP_AMOUNT)
+      newMonetaryAmount(DEFAULT_ISSUE_TOP_UP_AMOUNT, Bitcoin, true)
     );
     const tokenBalance = await interBtcAPI.tokens.balance(
       wrappedCurrency,
