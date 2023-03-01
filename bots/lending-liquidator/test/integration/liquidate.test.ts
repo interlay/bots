@@ -1,4 +1,4 @@
-import { createSubstrateAPI, CurrencyExt, DefaultInterBtcApi, DefaultTransactionAPI, InterBtcApi, InterbtcPrimitivesCurrencyId, newAccountId, newCurrencyId, LendToken, newMonetaryAmount, currencyIdToMonetaryCurrency } from "@interlay/interbtc-api";
+import { createSubstrateAPI, CurrencyExt, DefaultInterBtcApi, DefaultTransactionAPI, InterBtcApi, InterbtcPrimitivesCurrencyId, newAccountId, newCurrencyId, LendToken, newMonetaryAmount, currencyIdToMonetaryCurrency, sleep, SLEEP_TIME_MS } from "@interlay/interbtc-api";
 import { ApiPromise, Keyring } from "@polkadot/api";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { AccountId } from "@polkadot/types/interfaces";
@@ -32,7 +32,11 @@ describe("liquidate", () => {
     let underlyingCurrency3: CurrencyExt;
 
     before(async function () {
-        this.timeout(approx10Blocks);
+        // Sleep for 30s while the parachain is registering
+        // TODO: Check the chain state for when the parachain has already produces a few blocks
+        const sleepTimeMs = 30_000;
+        await sleep(sleepTimeMs);
+        this.timeout(approx10Blocks + sleepTimeMs);
 
         api = await createSubstrateAPI(DEFAULT_PARACHAIN_ENDPOINT);
         keyring = new Keyring({ type: "sr25519" });
