@@ -4,8 +4,10 @@ import { KeyringPair } from "@polkadot/keyring/types";
 import { AccountId } from "@polkadot/types/interfaces";
 import { expect } from "chai";
 
-import { APPROX_BLOCK_TIME_MS, DEFAULT_PARACHAIN_ENDPOINT, DEFAULT_SUDO_URI, DEFAULT_USER_1_URI, DEFAULT_USER_2_URI } from "../config";
-import { setExchangeRate, waitForNthBlock, waitRegisteredLendingMarkets } from "../utils";
+import { DEFAULT_PARACHAIN_ENDPOINT, DEFAULT_SUDO_URI, DEFAULT_USER_1_URI, DEFAULT_USER_2_URI } from "../config";
+import { setExchangeRate, waitRegisteredLendingMarkets } from "../utils";
+import { startLiquidator } from "../../src";
+import { APPROX_BLOCK_TIME_MS } from "../../src/consts";
 
 describe("liquidate", () => {
     const approx10Blocks = 10 * APPROX_BLOCK_TIME_MS;
@@ -33,7 +35,6 @@ describe("liquidate", () => {
 
     before(async function () {
         api = await createSubstrateAPI(DEFAULT_PARACHAIN_ENDPOINT);
-        await waitForNthBlock(api);
         keyring = new Keyring({ type: "sr25519" });
         userAccount = keyring.addFromUri(DEFAULT_USER_1_URI);
         user2Account = keyring.addFromUri(DEFAULT_USER_2_URI);
@@ -141,13 +142,14 @@ describe("liquidate", () => {
         await userInterBtcAPI.loans.borrow(borrowAmount1.currency, borrowAmount1);
         await userInterBtcAPI.loans.borrow(borrowAmount2.currency, borrowAmount2);
 
-        // start liquidation listener
-        // lendingLiquidationChecker(user2InterBtcAPI)
-        // TODO!: start the bot listener logic
+        // Start liquidation listener
+        // Do not `await` so it runs in the background
+        startLiquidator(sudoInterBtcAPI);
+
         const liquidationEventFoundPromise = DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.LiquidatedBorrow, approx10Blocks);
 
         // crash the collateral exchange rate
-        const newExchangeRate = "0x00000000000000000001000000000000";
+        const newExchangeRate = "0x00000000000000000000001000000000";
         await setExchangeRate(sudoInterBtcAPI, depositAmount.currency, newExchangeRate);
 
         // expect liquidation event to happen

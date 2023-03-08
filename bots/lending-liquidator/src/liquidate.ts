@@ -1,7 +1,7 @@
-import { ChainBalance, CollateralPosition, CurrencyExt, InterBtcApi, newAccountId, newMonetaryAmount, UndercollateralizedPosition } from "@interlay/interbtc-api";
+import { ChainBalance, CollateralPosition, CurrencyExt, InterBtcApi, newAccountId, newMonetaryAmount, UndercollateralizedPosition, addressOrPairAsAccountId, DefaultTransactionAPI } from "@interlay/interbtc-api";
 import { Currency, ExchangeRate, MonetaryAmount } from "@interlay/monetary-js";
 import { AccountId } from "@polkadot/types/interfaces";
-import { NATIVE_CURRENCIES } from "./consts";
+import { APPROX_BLOCK_TIME_MS } from "./consts";
 
 type CollateralAndValue = {
     collateral: CollateralPosition,
@@ -28,7 +28,7 @@ function findHighestValueCollateral(positions: CollateralPosition[], rates: Map<
     return positions.reduce(
         (previous, current) => {
             const currentReferencePrice = referencePrice(current.amount, rates.get(current.amount.currency));
-            if (previous.collateral.amount.gt(currentReferencePrice)) {
+            if (previous.referenceValue.gt(currentReferencePrice)) {
                 return previous;
             }
             return {
@@ -42,7 +42,6 @@ function findHighestValueCollateral(positions: CollateralPosition[], rates: Map<
 
 function liquidationStrategy(
     interBtcApi: InterBtcApi,
-    chainAssets: Set<CurrencyExt>,
     liquidatorBalance: Map<Currency, ChainBalance>,
     oracleRates: Map<Currency, ExchangeRate<Currency, CurrencyExt>>,
     undercollateralizedBorrowers: UndercollateralizedPosition[]
@@ -55,10 +54,15 @@ function liquidationStrategy(
                 return;
             }
             position.borrowPositions.forEach((loan) => {
-                if (chainAssets.has(loan.accumulatedDebt.currency)) {
-                    const balance = liquidatorBalance.get(loan.accumulatedDebt.currency) as ChainBalance;
-                    const rate = oracleRates.get(loan.accumulatedDebt.currency) as ExchangeRate<Currency, CurrencyExt>;
-                    const repayableAmount = loan.accumulatedDebt.min(balance.free);
+                const totalDebt = loan.amount.add(loan.accumulatedDebt);
+                console.log("debt currency", totalDebt.currency);
+                console.log("highest value collateral ", highestValueCollateral.collateral.amount.currency.ticker, highestValueCollateral.referenceValue.toHuman());
+                if (liquidatorBalance.has(totalDebt.currency)) {
+                    const balance = liquidatorBalance.get(totalDebt.currency) as ChainBalance;
+                    console.log("free bot balance ", balance.free.toHuman());
+                    console.log("borrower debt", totalDebt.toHuman());
+                    const rate = oracleRates.get(totalDebt.currency) as ExchangeRate<Currency, CurrencyExt>;
+                    const repayableAmount = totalDebt.min(balance.free);
                     // TODO: Take close factor into account when consider the collateral's reference value
                     const referenceRepayable = referencePrice(repayableAmount, rate).min(highestValueCollateral.referenceValue);
                     if (referenceRepayable.gt(maxRepayableLoan)) {
@@ -71,37 +75,52 @@ function liquidationStrategy(
         return result;
 }
 
-async function start(interBtcApi: InterBtcApi): Promise<void> {
+export async function startLiquidator(interBtcApi: InterBtcApi): Promise<void> {
+    console.log("Starting lending liquidator...");
     const foreignAssets = await interBtcApi.assetRegistry.getForeignAssets();
-    let chainAssets = new Set([...NATIVE_CURRENCIES, ...foreignAssets]);
-    if (!interBtcApi.account) {
+
+    let nativeCurrency = [interBtcApi.getWrappedCurrency(), interBtcApi.getGovernanceCurrency(), interBtcApi.getRelayChainCurrency()]
+    let chainAssets = new Set([...nativeCurrency, ...foreignAssets]);
+    if (interBtcApi.account == undefined) {
         return Promise.reject("No account set for the lending-liquidator");
     }
-    const accountId = newAccountId(interBtcApi.api, interBtcApi.account.toString());
+    const accountId = addressOrPairAsAccountId(interBtcApi.api, interBtcApi.account);
+    console.log("Listening to new blocks...");
     await interBtcApi.api.rpc.chain.subscribeNewHeads(async (header) => {
-
+        console.log(`Scanning block: #${header.number}`);
         const liquidatorBalance: Map<Currency, ChainBalance> = new Map();
         const oracleRates: Map<Currency, ExchangeRate<Currency, CurrencyExt>> = new Map();
-        const [_balancesPromise, _oraclePromise, undercollateralizedBorrowers, foreignAssets] = await Promise.all([
-            Promise.all([...chainAssets].map((asset) => interBtcApi.tokens.balance(asset, accountId).then((balance) => liquidatorBalance.set(asset, balance)))),
-            Promise.all([...chainAssets].map((asset) => interBtcApi.oracle.getExchangeRate(asset).then((rate) => oracleRates.set(asset, rate)))),
-            interBtcApi.loans.getUndercollateralizedBorrowers(),
-            interBtcApi.assetRegistry.getForeignAssets()
-        ]);
-        
-        if (undercollateralizedBorrowers.length > 0) {
-            const [amountToRepay, collateralToLiquidate, borrower] = liquidationStrategy(
+        console.log("awaiting big promise");
+        try {
+            const [_balancesPromise, _oraclePromise, undercollateralizedBorrowers, foreignAssets] = await Promise.all([
+                Promise.all([...chainAssets].map((asset) => interBtcApi.tokens.balance(asset, accountId).then((balance) => liquidatorBalance.set(asset, balance)))),
+                Promise.all([...chainAssets].map((asset) => interBtcApi.oracle.getExchangeRate(asset).then((rate) => oracleRates.set(asset, rate)))),
+                interBtcApi.loans.getUndercollateralizedBorrowers(),
+                interBtcApi.assetRegistry.getForeignAssets()
+            ]);
+            
+            console.log(`undercollateralized borrowers: ${undercollateralizedBorrowers.length}`);
+            const potentialLiquidation = liquidationStrategy(
                 interBtcApi,
-                chainAssets,
                 liquidatorBalance,
                 oracleRates,
                 undercollateralizedBorrowers
             ) as [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId];
-            await interBtcApi.loans.liquidateBorrowPosition(borrower, amountToRepay.currency, amountToRepay, collateralToLiquidate);
+            if (potentialLiquidation) {
+                const [amountToRepay, collateralToLiquidate, borrower] = potentialLiquidation;
+                console.log(`Liquidating ${borrower.toString()} with ${amountToRepay.toHuman()} ${amountToRepay.currency.ticker}, collateral: ${collateralToLiquidate.ticker}`);
+                // Either our liquidation will go through, or someone else's will
+                await Promise.all([
+                    DefaultTransactionAPI.waitForEvent(interBtcApi.api, interBtcApi.api.events.loans.ActivatedMarket, 10 * APPROX_BLOCK_TIME_MS),
+                    interBtcApi.loans.liquidateBorrowPosition(borrower, amountToRepay.currency, amountToRepay, collateralToLiquidate)
+                ]);
+            }
+            
+        } catch (error) {
+            console.log("found an error: ", error);   
         }
         
         // Add any new foreign assets to `chainAssets`
         chainAssets = new Set([...Array.from(chainAssets), ...foreignAssets]);
-        console.log(`Scanned block: #${header.number}`);
     });
 }
