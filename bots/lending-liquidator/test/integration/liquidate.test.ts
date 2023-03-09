@@ -149,7 +149,7 @@ describe("liquidate", () => {
         const liquidationEventFoundPromise = DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.LiquidatedBorrow, approx10Blocks);
 
         // crash the collateral exchange rate
-        const newExchangeRate = "0x00000000000000000000001000000000";
+        const newExchangeRate = "0x00000000000000000000100000000000";
         await setExchangeRate(sudoInterBtcAPI, depositAmount.currency, newExchangeRate);
 
         // expect liquidation event to happen
