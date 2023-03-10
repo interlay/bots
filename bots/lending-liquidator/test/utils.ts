@@ -1,5 +1,5 @@
 
-import { CurrencyExt, InterBtcApi, storageKeyToNthInner, getStorageMapItemKey, createExchangeRateOracleKey, setStorageAtKey, sleep, SLEEP_TIME_MS } from "@interlay/interbtc-api";
+import { CurrencyExt, InterBtcApi, storageKeyToNthInner, createExchangeRateOracleKey, setStorageAtKey, sleep, SLEEP_TIME_MS } from "@interlay/interbtc-api";
 
 import { ApiPromise } from "@polkadot/api";
 
@@ -22,8 +22,7 @@ export async function setExchangeRate(
 
     // Change Exchange rate storage for currency.
     const exchangeRateOracleKey = createExchangeRateOracleKey(api, currency);
-
-    const exchangeRateStorageKey = getStorageMapItemKey("Oracle", "Aggregate", exchangeRateOracleKey.toHex());
+    const exchangeRateStorageKey = sudoInterBtcAPI.api.query.oracle.aggregate.key(exchangeRateOracleKey);
     await setStorageAtKey(sudoInterBtcAPI.api, exchangeRateStorageKey, newExchangeRateHex, sudoAccount);
 }
 

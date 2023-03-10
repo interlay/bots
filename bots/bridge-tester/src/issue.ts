@@ -15,7 +15,7 @@ import _ from "underscore";
 
 import { LOAD_TEST_ISSUE_AMOUNT } from "./consts";
 import logger from "./logger";
-import { sleep, waitForEmptyMempool } from "./utils";
+import { sleep } from "./utils";
 
 export class Issue {
   interBtcApi: InterBtcApi;

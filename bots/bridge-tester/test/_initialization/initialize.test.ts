@@ -4,7 +4,6 @@ import { assert } from "chai";
 
 import {
   BitcoinCoreClient,
-  initializeStableConfirmations,
   issueSingle,
   InterBtcApi,
   DefaultInterBtcApi,
@@ -14,6 +13,7 @@ import {
   InterbtcPrimitivesVaultId,
   newVaultId,
   CollateralCurrencyExt,
+  setRawStorage,
 } from "@interlay/interbtc-api";
 import {
   DEFAULT_PARACHAIN_ENDPOINT,
@@ -87,15 +87,20 @@ describe.skip("Initialize parachain state", () => {
         ]);
 
         if (stableBitcoinConfirmations != 0 || stableParachainConfirmations != 0) {
-            await initializeStableConfirmations(
+            console.log("Initializing stable block confirmations...");
+            await setRawStorage(
                 api,
-                {
-                    bitcoinConfirmations: stableBitcoinConfirmationsToSet,
-                    parachainConfirmations: stableParachainConfirmationsToSet,
-                },
-                sudoAccount,
-                bitcoinCoreClient
+                api.query.btcRelay.stableBitcoinConfirmations.key(),
+                api.createType("u32", stableBitcoinConfirmationsToSet),
+                sudoAccount
             );
+            await setRawStorage(
+                api,
+                api.query.btcRelay.stableParachainConfirmations.key(),
+                api.createType("u32", stableParachainConfirmationsToSet),
+                sudoAccount
+            );
+            await bitcoinCoreClient.mineBlocks(3);
             [stableBitcoinConfirmations, stableParachainConfirmations] = await Promise.all([
                 userInterBtcApi.btcRelay.getStableBitcoinConfirmations(),
                 userInterBtcApi.btcRelay.getStableParachainConfirmations(),

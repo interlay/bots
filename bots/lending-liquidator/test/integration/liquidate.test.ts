@@ -8,6 +8,7 @@ import { DEFAULT_PARACHAIN_ENDPOINT, DEFAULT_SUDO_URI, DEFAULT_USER_1_URI, DEFAU
 import { setExchangeRate, waitRegisteredLendingMarkets } from "../utils";
 import { startLiquidator } from "../../src";
 import { APPROX_BLOCK_TIME_MS } from "../../src/consts";
+import { waitForEvent } from "../../src/utils";
 
 describe("liquidate", () => {
     const approx10Blocks = 10 * APPROX_BLOCK_TIME_MS;
@@ -104,7 +105,7 @@ describe("liquidate", () => {
         ]);
 
         const [eventFound] = await Promise.all([
-            DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.ActivatedMarket, approx10Blocks),
+            waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.ActivatedMarket, approx10Blocks),
             api.tx.sudo.sudo(addMarkets).signAndSend(sudoAccount),
         ]);
         expect(
@@ -115,10 +116,10 @@ describe("liquidate", () => {
     });
 
     after(async () => {
-        api.disconnect();
+        await api.disconnect();
     });
 
-    it("should lend expected amount of currency to protocol", async function () {
+    it("should liquidate undercollateralized borrower", async function () {
         this.timeout(20 * approx10Blocks);
 
         const depositAmount = newMonetaryAmount(1000, underlyingCurrency1, true);
@@ -146,7 +147,7 @@ describe("liquidate", () => {
         // Do not `await` so it runs in the background
         startLiquidator(sudoInterBtcAPI);
 
-        const liquidationEventFoundPromise = DefaultTransactionAPI.waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.LiquidatedBorrow, approx10Blocks);
+        const liquidationEventFoundPromise = waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.LiquidatedBorrow, approx10Blocks);
 
         // crash the collateral exchange rate
         const newExchangeRate = "0x00000000000000000000100000000000";
