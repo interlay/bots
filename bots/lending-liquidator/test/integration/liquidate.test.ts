@@ -51,11 +51,11 @@ describe("liquidate", () => {
         lendTokenId3 = newCurrencyId(api, { lendToken: { id: 3 } } as LendToken);
 
         underlyingCurrencyId1 = api.consts.escrowRewards.getNativeCurrencyId;
-        underlyingCurrency1 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.assetRegistry, sudoInterBtcAPI.loans, underlyingCurrencyId1);
+        underlyingCurrency1 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.api, underlyingCurrencyId1);
         underlyingCurrencyId2 = api.consts.currency.getRelayChainCurrencyId;
-        underlyingCurrency2 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.assetRegistry, sudoInterBtcAPI.loans, underlyingCurrencyId2);
+        underlyingCurrency2 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.api, underlyingCurrencyId2);
         underlyingCurrencyId3 = api.consts.currency.getWrappedCurrencyId;
-        underlyingCurrency3 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.assetRegistry, sudoInterBtcAPI.loans, underlyingCurrencyId3);
+        underlyingCurrency3 = await currencyIdToMonetaryCurrency(sudoInterBtcAPI.api, underlyingCurrencyId3);
 
         const percentageToPermill = (percentage: number) => percentage * 10000;
 

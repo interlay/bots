@@ -33,15 +33,46 @@
     isomorphic-fetch "^3.0.0"
     regtest-client "^0.2.0"
 
+"@interlay/interbtc-api@2.0.1":
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/@interlay/interbtc-api/-/interbtc-api-2.0.1.tgz#f1dae8047eca82bee8b86d0ffdc23cc1cae644ef"
+  integrity sha512-+C+o+wO7QPZP6nqRJzplEejSOzYfBg8GIQaEoumLQYeqQr1lUSJHBULgI2CcT4tzGnxL3iJS6wEeVS9R7di35g==
+  dependencies:
+    "@interlay/esplora-btc-api" "0.4.0"
+    "@interlay/interbtc-types" "1.12.0"
+    "@interlay/monetary-js" "0.7.2"
+    "@polkadot/api" "9.11.1"
+    big.js "6.1.1"
+    bitcoin-core "^3.0.0"
+    bitcoinjs-lib "^5.2.0"
+    bn.js "4.12.0"
+    cross-fetch "^3.0.6"
+    isomorphic-fetch "^3.0.0"
+    regtest-client "^0.2.0"
+
 "@interlay/interbtc-types@1.11.2":
   version "1.11.2"
   resolved "https://registry.yarnpkg.com/@interlay/interbtc-types/-/interbtc-types-1.11.2.tgz#e856b70bdc8ca8905ca841fc7181a60418959a91"
   integrity sha512-38kEIPtn6xKQchA992sZvk43aCBBk0snYiBg3JRsrARiIOEd1v452f+QWHv7L7dxFAfUtOJaw5MHPNl6c46NYQ==
 
+"@interlay/interbtc-types@1.12.0":
+  version "1.12.0"
+  resolved "https://registry.yarnpkg.com/@interlay/interbtc-types/-/interbtc-types-1.12.0.tgz#07dc8e15690292387124dbc2bbb7bf5bc8b68001"
+  integrity sha512-ELJa2ftIbe8Ds2ejS7kO5HumN9EB5l2OBi3Qsy5iHJsHKq2HtXfFoKnW38HarM6hADrWG+e/yNGHSKJIJzEZuA==
+
 "@interlay/monetary-js@0.7.0":
   version "0.7.0"
   resolved "https://registry.yarnpkg.com/@interlay/monetary-js/-/monetary-js-0.7.0.tgz#7142f7d2b86acf77d8524cee22b4ae2c5ba2d3a6"
   integrity sha512-vxUcrl2Kum4W2bPt9Lz0WM/pPZEjOrwBtMEgNBAqBtBROXWeOi5jdwQeUwNSr2jqxv0g3V0mVyCVqOxy00iiQg==
+  dependencies:
+    "@types/big.js" "6.1.2"
+    big.js "6.1.1"
+    typescript "^4.3.2"
+
+"@interlay/monetary-js@0.7.2":
+  version "0.7.2"
+  resolved "https://registry.yarnpkg.com/@interlay/monetary-js/-/monetary-js-0.7.2.tgz#a54a315b60be12f5b1a9c31f0d71d5e8ee7ba174"
+  integrity sha512-SqNKJKBEstXuLnzqWi+ON+9ImrNVlKqZpXfiTtT3bcvxqh4jnVsGbYVe2I0FqDWtilCWq6/1RjKkpaSG2dvJhA==
   dependencies:
     "@types/big.js" "6.1.2"
     big.js "6.1.1"

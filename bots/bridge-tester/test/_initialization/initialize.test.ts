@@ -12,8 +12,7 @@ import {
   newMonetaryAmount,
   InterbtcPrimitivesVaultId,
   newVaultId,
-  CollateralCurrencyExt,
-  setRawStorage,
+  CollateralCurrencyExt
 } from "@interlay/interbtc-api";
 import {
   DEFAULT_PARACHAIN_ENDPOINT,
@@ -26,6 +25,7 @@ import {
   DEFAULT_SUDO_URI,
   DEFAULT_USER_1_URI,
 } from "../config";
+import { u32 } from "@polkadot/types-codec";
 
 describe.skip("Initialize parachain state", () => {
   let api: ApiPromise;
@@ -130,3 +130,7 @@ describe.skip("Initialize parachain state", () => {
     );
   });
 });
+function setRawStorage(api: ApiPromise, arg1: string, arg2: u32, sudoAccount: KeyringPair) {
+  throw new Error("Function not implemented.");
+}
+
