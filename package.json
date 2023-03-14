@@ -6,9 +6,7 @@
   
 "scripts": {
       "test": "yarn workspaces run test",
-      "build": "yarn workspaces run build",
-      "docker-parachain-start": "ts-node scripts/setup-parachain-docker.ts",
-      "docker-parachain-stop": "docker-compose -f local-setup/docker-compose.yml down -v"
+      "build": "yarn workspaces run build"
    },
   "devDependencies": {
     "@types/chai": "^4.2.16",
