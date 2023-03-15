@@ -4,7 +4,7 @@
     "description": "Bot for testing the Interlay and Kintsugi bridges.",
     "main": "build/index.js",
     "typings": "build/index.d.ts",
-    "repository": "https://github.com/interlay/bots/bridge-tester",
+    "repository": "https://github.com/interlay/bots/bots/bridge-tester",
     "author": "Interlay",
     "license": "Apache-2.0",
   "engines": {

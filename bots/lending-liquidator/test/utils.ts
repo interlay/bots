@@ -10,7 +10,7 @@ export async function setExchangeRate(
 ): Promise<void> {
     const { account: sudoAccount, api } = sudoInterBtcAPI;
     if (!sudoAccount) {
-        throw new Error("callWithExchangeRate: sudo account is not set.");
+        throw new Error("setExchangeRate: sudo account is not set.");
     }
     // Remove authorized oracle to make sure price won't be fed.
     const authorizedOracles = await api.query.oracle.authorizedOracles.entries();

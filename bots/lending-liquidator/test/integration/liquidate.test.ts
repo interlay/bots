@@ -144,8 +144,9 @@ describe("liquidate", () => {
         await userInterBtcAPI.loans.borrow(borrowAmount2.currency, borrowAmount2);
 
         // Start liquidation listener
-        // Do not `await` so it runs in the background
-        startLiquidator(sudoInterBtcAPI);
+        // `await`ing here is only for getting the block subscription unsubscribe function.
+        // Scanning blocks and liquidating does not block the return here
+        const terminate = await startLiquidator(sudoInterBtcAPI);
 
         const liquidationEventFoundPromise = waitForEvent(sudoInterBtcAPI.api, sudoInterBtcAPI.api.events.loans.LiquidatedBorrow, approx10Blocks);
 
@@ -159,5 +160,6 @@ describe("liquidate", () => {
             liquidationOccured,
             `Expected the bot to have liquidated user ${userAccountId.toString()}, in collateral currency ${depositAmount.currency.ticker}`
         ).to.be.true;
+        terminate();
     });
 });

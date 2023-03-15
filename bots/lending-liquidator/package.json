@@ -1,11 +1,11 @@
 
 {
     "name": "lending-liquidator",
-    "version": "0.0.0",
+    "version": "1.0.0",
     "description": "Bot for liquidating undercollateralized borrowers on the Interlay and Kintsugi networks",
     "main": "build/index.js",
     "typings": "build/index.d.ts",
-    "repository": "https://github.com/interlay/bots/lending-liquidator",
+    "repository": "https://github.com/interlay/bots/bots/lending-liquidator",
     "author": "Interlay",
     "license": "Apache-2.0",
   "engines": {
