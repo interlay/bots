@@ -56,6 +56,7 @@ function liquidationStrategy(
     undercollateralizedBorrowers: UndercollateralizedPosition[],
     markets: Map<Currency, LoansMarket>
 ): [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId] | undefined {
+    // TODO: check liquidation premium in each market and filter out / ignore unprofitable liquidations
         let maxRepayableLoan = newMonetaryAmount(0, interBtcApi.getWrappedCurrency());
         let result: [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId] | undefined;
         undercollateralizedBorrowers.forEach((position) => {
