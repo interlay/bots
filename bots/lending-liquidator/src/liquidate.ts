@@ -1,4 +1,4 @@
-import { ChainBalance, CollateralPosition, CurrencyExt, InterBtcApi, LoansMarket, newMonetaryAmount, UndercollateralizedPosition, addressOrPairAsAccountId, DefaultTransactionAPI, decodePermill } from "@interlay/interbtc-api";
+import { ChainBalance, CollateralPosition, CurrencyExt, InterBtcApi, LoansMarket, newMonetaryAmount, UndercollateralizedPosition, addressOrPairAsAccountId, DefaultTransactionAPI, decodePermill, decodeFixedPointType } from "@interlay/interbtc-api";
 import { Currency, ExchangeRate, MonetaryAmount } from "@interlay/monetary-js";
 import { AccountId } from "@polkadot/types/interfaces";
 import { AddressOrPair } from "@polkadot/api/types";
@@ -72,6 +72,9 @@ function liquidationStrategy(
                 if (liquidatorBalance.has(totalDebt.currency)) {
                     const loansMarket = markets.get(totalDebt.currency) as LoansMarket;
                     const closeFactor = decodePermill(loansMarket.closeFactor);
+                    // `liquidationIncentive` includes the liquidation premium
+                    // e.g. if the premium is 10%, `liquidationIncentive` is 110%  
+                    const liquidationIncentive = decodeFixedPointType(loansMarket.liquidateIncentive)
                     const balance = liquidatorBalance.get(totalDebt.currency) as ChainBalance;
                     const rate = oracleRates.get(totalDebt.currency) as ExchangeRate<Currency, CurrencyExt>;
                     // Can only repay a fraction of the total debt, defined by the `closeFactor`
@@ -79,7 +82,7 @@ function liquidationStrategy(
                     const referenceRepayable = referenceValue(repayableAmount, rate);
                     if (
                         // The liquidation must be profitable
-                        highestValueCollateral.referenceValue.gt(referenceRepayable) && 
+                        highestValueCollateral.referenceValue.gte(referenceRepayable.mul(liquidationIncentive)) && 
                         referenceRepayable.gt(maxRepayableLoan)
                     ) {
                         maxRepayableLoan = referenceRepayable;
@@ -121,6 +124,12 @@ function liquidationStrategy(
             const [amountToRepay, collateralToLiquidate, borrower] = potentialLiquidation;
             console.log(`Liquidating ${borrower.toString()} with ${amountToRepay.toHuman()} ${amountToRepay.currency.ticker}, collateral: ${collateralToLiquidate.ticker}`);
             await interBtcApi.loans.liquidateBorrowPosition(borrower, amountToRepay.currency, amountToRepay, collateralToLiquidate);
+            // Try withdrawing the collateral reward (received as qTokens which need to be redeemed for the underlying).
+            // This might fail if there is insufficient liquidity in the protocol.
+            // TODO: periodically try withdrawing qToken balance
+            interBtcApi.loans.withdrawAll(collateralToLiquidate).catch((error) => {
+                console.error("Error redeeming collateral reward: ", error);
+            });
         }
     }
 
