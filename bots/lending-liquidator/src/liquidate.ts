@@ -56,7 +56,6 @@ function liquidationStrategy(
     undercollateralizedBorrowers: UndercollateralizedPosition[],
     markets: Map<Currency, LoansMarket>
 ): [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId] | undefined {
-    // TODO: check liquidation premium in each market and filter out / ignore unprofitable liquidations
         let maxRepayableLoan = newMonetaryAmount(0, interBtcApi.getWrappedCurrency());
         let result: [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId] | undefined;
         undercollateralizedBorrowers.forEach((position) => {
@@ -77,8 +76,12 @@ function liquidationStrategy(
                     const rate = oracleRates.get(totalDebt.currency) as ExchangeRate<Currency, CurrencyExt>;
                     // Can only repay a fraction of the total debt, defined by the `closeFactor`
                     const repayableAmount = totalDebt.mul(closeFactor).min(balance.free);
-                    const referenceRepayable = referenceValue(repayableAmount, rate).min(highestValueCollateral.referenceValue);
-                    if (referenceRepayable.gt(maxRepayableLoan)) {
+                    const referenceRepayable = referenceValue(repayableAmount, rate);
+                    if (
+                        // The liquidation must be profitable
+                        highestValueCollateral.referenceValue.gt(referenceRepayable) && 
+                        referenceRepayable.gt(maxRepayableLoan)
+                    ) {
                         maxRepayableLoan = referenceRepayable;
                         result = [repayableAmount, highestValueCollateral.collateral.currency, position.accountId];
                     }
@@ -104,7 +107,7 @@ function liquidationStrategy(
             interBtcApi.loans.getUndercollateralizedBorrowers(),
             interBtcApi.loans.getLoansMarkets(),
         ]);
-        
+
         console.log(`undercollateralized borrowers: ${undercollateralizedBorrowers.length}`);
         // Run the liquidation strategy to find the most profitable liquidation
         const potentialLiquidation = liquidationStrategy(
@@ -117,11 +120,7 @@ function liquidationStrategy(
         if (potentialLiquidation) {
             const [amountToRepay, collateralToLiquidate, borrower] = potentialLiquidation;
             console.log(`Liquidating ${borrower.toString()} with ${amountToRepay.toHuman()} ${amountToRepay.currency.ticker}, collateral: ${collateralToLiquidate.ticker}`);
-            // Either our liquidation will go through, or someone else's will
-            await Promise.all([
-                waitForEvent(interBtcApi.api, interBtcApi.api.events.loans.LiquidatedBorrow, 10 * APPROX_BLOCK_TIME_MS),
-                interBtcApi.loans.liquidateBorrowPosition(borrower, amountToRepay.currency, amountToRepay, collateralToLiquidate)
-            ]);
+            await interBtcApi.loans.liquidateBorrowPosition(borrower, amountToRepay.currency, amountToRepay, collateralToLiquidate);
         }
     }
 
