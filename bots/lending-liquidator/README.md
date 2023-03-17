@@ -10,6 +10,7 @@ Protip: Instead of using the docker-compose file provided, you can fork mainnet 
 
 ```shell
 git clone https://github.com/interlay/bots
+cd bots
 yarn install
 docker-compose up
 
@@ -28,6 +29,7 @@ Run your own parachain node or connect to the Kintsugi (`wss://api-kusama.interl
 ### Install and run bot
 ```shell
 git clone https://github.com/interlay/bots
+cd bots
 yarn install
 
 # Ensure the `LENDING_LIQUIDATOR_ACCOUNT` and `PARACHAIN_URL` are set in the environment
