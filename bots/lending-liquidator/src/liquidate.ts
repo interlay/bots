@@ -3,25 +3,27 @@ import { Currency, ExchangeRate, MonetaryAmount } from "@interlay/monetary-js";
 import { AccountId } from "@polkadot/types/interfaces";
 import { AddressOrPair } from "@polkadot/api/types";
 
-import { APPROX_BLOCK_TIME_MS } from "./consts";
-import { waitForEvent } from "./utils";
-
 type CollateralAndValue = {
     collateral: MonetaryAmount<Currency>,
     referenceValue: MonetaryAmount<Currency>
 }
 
-function referenceValue(balance: MonetaryAmount<CurrencyExt>, rate: ExchangeRate<Currency, CurrencyExt> | undefined): MonetaryAmount<Currency> {
+function referenceValue<C extends Currency>(
+    balance: MonetaryAmount<CurrencyExt>,
+    rate: ExchangeRate<C, CurrencyExt> | undefined,
+    referenceCurrency: C
+): MonetaryAmount<C> {
     if (!rate) {
-        return new MonetaryAmount(balance.currency, 0);
+        return new MonetaryAmount(referenceCurrency, 0);
     }
     // Convert to the reference currency (BTC)
     return rate.toBase(balance)
 }
 
-function findHighestValueCollateral(
+function findHighestValueCollateral<C extends Currency>(
     positions: CollateralPosition[],
-    rates: Map<Currency, ExchangeRate<Currency, CurrencyExt>>
+    rates: Map<String, ExchangeRate<C, CurrencyExt>>,
+    referenceCurrency: C
 ): CollateralAndValue | undefined {
     // It should be impossible to have no collateral currency locked, but just in case
     if (positions.length == 0) {
@@ -31,12 +33,17 @@ function findHighestValueCollateral(
         collateral: positions[0].amount,
         referenceValue: referenceValue(
             newMonetaryAmount(0, positions[0].amount.currency),
-            rates.get(positions[0].amount.currency)
+            rates.get(positions[0].amount.currency.ticker),
+            referenceCurrency
         )
     };
     return positions.reduce(
         (previous, current) => {
-            const liquidatableValue = referenceValue(current.amount, rates.get(current.amount.currency));
+            const liquidatableValue = referenceValue(
+                current.amount,
+                rates.get(current.amount.currency.ticker),
+                referenceCurrency
+            );
             if (previous.referenceValue.gt(liquidatableValue)) {
                 return previous;
             }
@@ -52,15 +59,20 @@ function findHighestValueCollateral(
 function liquidationStrategy(
     interBtcApi: InterBtcApi,
     liquidatorBalance: Map<Currency, ChainBalance>,
-    oracleRates: Map<Currency, ExchangeRate<Currency, CurrencyExt>>,
+    oracleRates: Map<String, ExchangeRate<Currency, CurrencyExt>>,
     undercollateralizedBorrowers: UndercollateralizedPosition[],
     markets: Map<Currency, LoansMarket>
 ): [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId] | undefined {
-        let maxRepayableLoan = newMonetaryAmount(0, interBtcApi.getWrappedCurrency());
+        const referenceCurrency = interBtcApi.getWrappedCurrency();
+        let maxRepayableLoan = newMonetaryAmount(0, referenceCurrency);
         let result: [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId] | undefined;
         undercollateralizedBorrowers.forEach((position) => {
             // Among the collateral currencies locked by this borrower, which one is worth the most?
-            const highestValueCollateral = findHighestValueCollateral(position.collateralPositions, oracleRates); 
+            const highestValueCollateral = findHighestValueCollateral(
+                position.collateralPositions,
+                oracleRates,
+                referenceCurrency
+            ); 
             if (!highestValueCollateral) {
                 return;
             }
@@ -76,10 +88,10 @@ function liquidationStrategy(
                     // e.g. if the premium is 10%, `liquidationIncentive` is 110%  
                     const liquidationIncentive = decodeFixedPointType(loansMarket.liquidateIncentive)
                     const balance = liquidatorBalance.get(totalDebt.currency) as ChainBalance;
-                    const rate = oracleRates.get(totalDebt.currency) as ExchangeRate<Currency, CurrencyExt>;
+                    const rate = oracleRates.get(totalDebt.currency.ticker) as ExchangeRate<Currency, CurrencyExt>;
                     // Can only repay a fraction of the total debt, defined by the `closeFactor`
                     const repayableAmount = totalDebt.mul(closeFactor).min(balance.free);
-                    const referenceRepayable = referenceValue(repayableAmount, rate);
+                    const referenceRepayable = referenceValue(repayableAmount, rate, referenceCurrency);
                     if (
                         // The liquidation must be profitable
                         highestValueCollateral.referenceValue.gte(referenceRepayable.mul(liquidationIncentive)) && 
@@ -97,7 +109,7 @@ function liquidationStrategy(
     async function checkForLiquidations(interBtcApi: InterBtcApi): Promise<void> {
         const accountId = addressOrPairAsAccountId(interBtcApi.api, interBtcApi.account as AddressOrPair);
         const liquidatorBalance: Map<Currency, ChainBalance> = new Map();
-        const oracleRates: Map<Currency, ExchangeRate<Currency, CurrencyExt>> = new Map();
+        const oracleRates: Map<String, ExchangeRate<Currency, CurrencyExt>> = new Map();
         const nativeCurrencies = [interBtcApi.getWrappedCurrency(), interBtcApi.getGovernanceCurrency(), interBtcApi.getRelayChainCurrency()]
         // This call slows down potential liquidations.
         // TODO: keep a local cache of foreign assets and fetch 
@@ -106,7 +118,11 @@ function liquidationStrategy(
 
         const [_balancesPromise, _oraclePromise, undercollateralizedBorrowers, marketsArray] = await Promise.all([
             Promise.all([...chainAssets].map((asset) => interBtcApi.tokens.balance(asset, accountId).then((balance) => liquidatorBalance.set(asset, balance)))),
-            Promise.all([...chainAssets].map((asset) => interBtcApi.oracle.getExchangeRate(asset).then((rate) => oracleRates.set(asset, rate)))),
+            Promise.all([...chainAssets].map((asset) =>
+                interBtcApi.oracle.getExchangeRate(asset)
+                    .then((rate) => oracleRates.set(asset.ticker, rate))
+                    .catch((_) => {})
+            )),
             interBtcApi.loans.getUndercollateralizedBorrowers(),
             interBtcApi.loans.getLoansMarkets(),
         ]);
