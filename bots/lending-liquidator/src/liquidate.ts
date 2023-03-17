@@ -58,10 +58,10 @@ function findHighestValueCollateral<C extends Currency>(
 
 function liquidationStrategy(
     interBtcApi: InterBtcApi,
-    liquidatorBalance: Map<Currency, ChainBalance>,
+    liquidatorBalance: Map<String, ChainBalance>,
     oracleRates: Map<String, ExchangeRate<Currency, CurrencyExt>>,
     undercollateralizedBorrowers: UndercollateralizedPosition[],
-    markets: Map<Currency, LoansMarket>
+    markets: Map<String, LoansMarket>
 ): [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId] | undefined {
         const referenceCurrency = interBtcApi.getWrappedCurrency();
         let maxRepayableLoan = newMonetaryAmount(0, referenceCurrency);
@@ -81,13 +81,13 @@ function liquidationStrategy(
             position.borrowPositions.forEach((loan) => {
                 const totalDebt = loan.amount.add(loan.accumulatedDebt);
                 // If this loan can be repaid using the lending-liquidator's balance
-                if (liquidatorBalance.has(totalDebt.currency)) {
-                    const loansMarket = markets.get(totalDebt.currency) as LoansMarket;
+                if (liquidatorBalance.has(totalDebt.currency.ticker)) {
+                    const loansMarket = markets.get(totalDebt.currency.ticker) as LoansMarket;
                     const closeFactor = decodePermill(loansMarket.closeFactor);
                     // `liquidationIncentive` includes the liquidation premium
                     // e.g. if the premium is 10%, `liquidationIncentive` is 110%  
                     const liquidationIncentive = decodeFixedPointType(loansMarket.liquidateIncentive)
-                    const balance = liquidatorBalance.get(totalDebt.currency) as ChainBalance;
+                    const balance = liquidatorBalance.get(totalDebt.currency.ticker) as ChainBalance;
                     const rate = oracleRates.get(totalDebt.currency.ticker) as ExchangeRate<Currency, CurrencyExt>;
                     // Can only repay a fraction of the total debt, defined by the `closeFactor`
                     const repayableAmount = totalDebt.mul(closeFactor).min(balance.free);
@@ -108,7 +108,7 @@ function liquidationStrategy(
     
     async function checkForLiquidations(interBtcApi: InterBtcApi): Promise<void> {
         const accountId = addressOrPairAsAccountId(interBtcApi.api, interBtcApi.account as AddressOrPair);
-        const liquidatorBalance: Map<Currency, ChainBalance> = new Map();
+        const liquidatorBalance: Map<String, ChainBalance> = new Map();
         const oracleRates: Map<String, ExchangeRate<Currency, CurrencyExt>> = new Map();
         const nativeCurrencies = [interBtcApi.getWrappedCurrency(), interBtcApi.getGovernanceCurrency(), interBtcApi.getRelayChainCurrency()]
         // This call slows down potential liquidations.
@@ -117,7 +117,7 @@ function liquidationStrategy(
         let chainAssets = new Set([...nativeCurrencies, ...foreignAssets]);
 
         const [_balancesPromise, _oraclePromise, undercollateralizedBorrowers, marketsArray] = await Promise.all([
-            Promise.all([...chainAssets].map((asset) => interBtcApi.tokens.balance(asset, accountId).then((balance) => liquidatorBalance.set(asset, balance)))),
+            Promise.all([...chainAssets].map((asset) => interBtcApi.tokens.balance(asset, accountId).then((balance) => liquidatorBalance.set(asset.ticker, balance)))),
             Promise.all([...chainAssets].map((asset) =>
                 interBtcApi.oracle.getExchangeRate(asset)
                     .then((rate) => oracleRates.set(asset.ticker, rate))
@@ -134,7 +134,7 @@ function liquidationStrategy(
             liquidatorBalance,
             oracleRates,
             undercollateralizedBorrowers,
-            new Map(marketsArray)
+            new Map(marketsArray.map(([currency, market]) => [currency.ticker, market]))
         ) as [MonetaryAmount<CurrencyExt>, CurrencyExt, AccountId];
         if (potentialLiquidation) {
             const [amountToRepay, collateralToLiquidate, borrower] = potentialLiquidation;
