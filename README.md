@@ -8,7 +8,7 @@ Repo with agents that perform actions in response to on-chain states. Includes a
 ## Testing
 ```bash
 yarn install
-yarn docker-parachain-start
+docker-compose up
 # open a new terminal...
 yarn test
 ```

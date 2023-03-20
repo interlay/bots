@@ -8,7 +8,7 @@ import {
   newMonetaryAmount,
   encodeVaultId,
 } from "@interlay/interbtc-api";
-import { BitcoinUnit, MonetaryAmount } from "@interlay/monetary-js";
+import { MonetaryAmount } from "@interlay/monetary-js";
 import { KeyringPair } from "@polkadot/keyring/types";
 import { H256 } from "@polkadot/types/interfaces";
 import Big from "big.js";
@@ -22,20 +22,20 @@ export class Redeem {
   vaultHeartbeats = new Map<string, number>();
   issue: Issue;
   private redeemDustValue:
-    | MonetaryAmount<WrappedCurrency, BitcoinUnit>
+    | MonetaryAmount<WrappedCurrency>
     | undefined;
   interBtc: InterBtcApi;
   expiredRedeemRequests: H256[] = [];
   constructor(
     interBtc: InterBtcApi,
-    private issueTopUpAmount: MonetaryAmount<WrappedCurrency, BitcoinUnit>
+    private issueTopUpAmount: MonetaryAmount<WrappedCurrency>
   ) {
     this.issue = new Issue(interBtc);
     this.interBtc = interBtc;
   }
 
   async getCachedRedeemDustValue(): Promise<
-    MonetaryAmount<WrappedCurrency, BitcoinUnit>
+    MonetaryAmount<WrappedCurrency>
   > {
     if (!this.redeemDustValue) {
       this.redeemDustValue = await this.interBtc.redeem.getDustValue();
@@ -44,14 +44,14 @@ export class Redeem {
   }
 
   increaseByThirtyPercent(
-    x: MonetaryAmount<WrappedCurrency, BitcoinUnit>
-  ): MonetaryAmount<WrappedCurrency, BitcoinUnit> {
+    x: MonetaryAmount<WrappedCurrency>
+  ): MonetaryAmount<WrappedCurrency> {
     return x.mul(new Big(13)).div(new Big(10));
   }
 
   async getMinimumBalanceForHeartbeat(
     vaultCount?: number
-  ): Promise<MonetaryAmount<WrappedCurrency, BitcoinUnit>> {
+  ): Promise<MonetaryAmount<WrappedCurrency>> {
     if (!this.interBtc.vaults) {
       logger.error("Parachain not connected");
       return newMonetaryAmount(0, this.interBtc.getWrappedCurrency());
@@ -69,7 +69,7 @@ export class Redeem {
   }
 
   async getMinRedeemableAmount(): Promise<
-    MonetaryAmount<WrappedCurrency, BitcoinUnit>
+    MonetaryAmount<WrappedCurrency>
   > {
     const redeemDustValue = await this.getCachedRedeemDustValue();
     const bitcoinNetworkFees =
@@ -228,6 +228,8 @@ export class Redeem {
         if (issuedTokens.gte(amountToRedeem)) {
           logger.info(
             `Redeeming ${amountToRedeem.toHuman()} out of ${issuedTokens.toHuman()} from vault ID ${encodeVaultId(
+              this.interBtc.assetRegistry,
+              this.interBtc.loans,
               vault.id
             )}`
           );
@@ -239,7 +241,11 @@ export class Redeem {
           logger.info(
             `Requested redeem: ${
               requestResult.id
-            } from vault ID ${encodeVaultId(vault.id)}`
+            } from vault ID ${encodeVaultId(
+              this.interBtc.assetRegistry,
+              this.interBtc.loans,
+              vault.id
+            )}`
           );
           // TODO: Uncomment once redeems are executed quickly by vaults.
           // const redeemRequestId = requestResult.id.toString();

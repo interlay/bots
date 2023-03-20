@@ -5,25 +5,22 @@ import {
   BitcoinNetwork,
   InterbtcPrimitivesVaultId,
   WrappedCurrency,
-  CurrencyUnit,
   newMonetaryAmount,
-  getCorrespondingCollateralCurrency,
-  CollateralUnit,
   encodeVaultId,
 } from "@interlay/interbtc-api";
-import { BitcoinUnit, Currency, MonetaryAmount } from "@interlay/monetary-js";
+import { Currency, MonetaryAmount } from "@interlay/monetary-js";
 import { KeyringPair } from "@polkadot/keyring/types";
 import Big from "big.js";
 import _ from "underscore";
 
 import { LOAD_TEST_ISSUE_AMOUNT } from "./consts";
 import logger from "./logger";
-import { sleep, waitForEmptyMempool } from "./utils";
+import { sleep } from "./utils";
 
 export class Issue {
   interBtcApi: InterBtcApi;
   private redeemDustValue:
-    | MonetaryAmount<WrappedCurrency, BitcoinUnit>
+    | MonetaryAmount<WrappedCurrency>
     | undefined;
 
   constructor(interBtc: InterBtcApi) {
@@ -37,9 +34,7 @@ export class Issue {
       "AccountId",
       requester.address
     );
-    const collateralCurrency = getCorrespondingCollateralCurrency(
-      this.interBtcApi.getGovernanceCurrency()
-    ) as Currency<CollateralUnit>;
+    const collateralCurrency = this.interBtcApi.api.consts.currency.getRelayChainCurrencyId;
     const balance = await this.interBtcApi.tokens.balance(
       collateralCurrency,
       requesterAccountId
@@ -69,7 +64,7 @@ export class Issue {
 
   async requestAndExecuteIssue(
     requester: KeyringPair,
-    amount: MonetaryAmount<WrappedCurrency, BitcoinUnit>,
+    amount: MonetaryAmount<WrappedCurrency>,
     bitcoinCoreClient: BitcoinCoreClient,
     vaultId?: InterbtcPrimitivesVaultId
   ): Promise<boolean> {
@@ -91,7 +86,7 @@ export class Issue {
   }
 
   async getCachedRedeemDustValue(): Promise<
-    MonetaryAmount<WrappedCurrency, BitcoinUnit>
+    MonetaryAmount<WrappedCurrency>
   > {
     if (!this.redeemDustValue) {
       this.redeemDustValue = await this.interBtcApi.redeem.getDustValue();
@@ -99,14 +94,14 @@ export class Issue {
     return this.redeemDustValue;
   }
 
-  increaseByFiftyPercent<U extends CurrencyUnit>(
-    x: MonetaryAmount<Currency<U>, U>
-  ): MonetaryAmount<Currency<U>, U> {
+  increaseByFiftyPercent(
+    x: MonetaryAmount<Currency>
+  ): MonetaryAmount<Currency> {
     return x.mul(new Big(15)).div(new Big(10));
   }
 
   async getAmountToIssue(): Promise<
-    MonetaryAmount<WrappedCurrency, BitcoinUnit>
+    MonetaryAmount<WrappedCurrency>
   > {
     const redeemDustValue = await this.getCachedRedeemDustValue();
     // We need to account for redeem fees to redeem later
@@ -161,9 +156,9 @@ export class Issue {
     for (const vault of vaults) {
       try {
         logger.info(
-          `Issuing ${amountToIssue.toString(amountToIssue.currency.base)} ${
+          `Issuing ${amountToIssue.toString(false)} ${
             amountToIssue.currency.ticker
-          } with vault ID ${encodeVaultId(vault.id)}`
+          } with vault ID ${encodeVaultId(this.interBtcApi.assetRegistry, this.interBtcApi.loans, vault.id)}`
         );
         this.requestAndExecuteIssue(
           account,

@@ -2,6 +2,7 @@ import {
   BitcoinNetwork,
   createInterBtcApi,
   InterBtcApi,
+  newMonetaryAmount,
   sleep,
 } from "@interlay/interbtc-api";
 import { KeyringPair } from "@polkadot/keyring/types";
@@ -11,8 +12,8 @@ import { cryptoWaitReady } from "@polkadot/util-crypto";
 import { MS_IN_AN_HOUR } from "./consts";
 import { Issue } from "./issue";
 import { Redeem } from "./redeem";
-import { BitcoinAmount } from "@interlay/monetary-js";
 import logger from "./logger";
+import { Bitcoin } from "@interlay/monetary-js";
 
 const yargs = require("yargs/yargs");
 const { hideBin } = require("yargs/helpers");
@@ -100,7 +101,7 @@ async function heartbeats(
       );
       const redeem = new Redeem(
         interBtcApi,
-        BitcoinAmount.from.BTC(process.env.ISSUE_TOP_UP_AMOUNT)
+        newMonetaryAmount(process.env.ISSUE_TOP_UP_AMOUNT, Bitcoin, true)
       );
       await redeem.performHeartbeatRedeems(
         account,
@@ -151,7 +152,7 @@ async function main(inputFlag: InputFlag, requestWaitingTime: number) {
     }
     case InputFlag.heartbeats: {
       heartbeats(account, process.env.REDEEM_ADDRESS as string);
-      setInterval(heartbeats, requestWaitingTime, account);
+      setInterval(heartbeats, requestWaitingTime, account, process.env.REDEEM_ADDRESS as string);
       break;
     }
   }

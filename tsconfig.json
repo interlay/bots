@@ -8,7 +8,7 @@
     "strict": true,
     "noImplicitAny": true,
     "esModuleInterop": true,
-    "baseUrl": "./bots",
+    "baseUrl": "./",
     "resolveJsonModule": true,
     // Generate files for debugging
     "sourceMap": true,

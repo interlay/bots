@@ -1,10 +1,11 @@
+
 {
-    "name": "bridge-tester",
-    "version": "0.0.2",
-    "description": "Bot for testing the Interlay and Kintsugi bridges.",
+    "name": "lending-liquidator",
+    "version": "1.0.0",
+    "description": "Bot for liquidating undercollateralized borrowers on the Interlay and Kintsugi networks",
     "main": "build/index.js",
     "typings": "build/index.d.ts",
-    "repository": "https://github.com/interlay/bots/bots/bridge-tester",
+    "repository": "https://github.com/interlay/bots/bots/lending-liquidator",
     "author": "Interlay",
     "license": "Apache-2.0",
   "engines": {
@@ -20,8 +21,7 @@
     "test:integration": "mocha test/**/*.test.ts --timeout 10000000"
   },
   "dependencies": {
-    "@interlay/interbtc-api": "1.21.0",
-    "@interlay/monetary-js": "0.7.0",
+    "@interlay/interbtc-api": "2.0.1",
     "@types/big.js": "6.1.2",
     "@types/node": "^14.14.31",
     "@types/underscore": "^1.11.2",
@@ -34,6 +34,9 @@
     "underscore": "^1.13.1",
     "yargs": "^17.0.1",
     "pino": "^7.5.1"
+  },
+  "resolutions": {
+    "bn.js": "4.12.0"
   },
   "mocha": {
     "reporter": "spec",
