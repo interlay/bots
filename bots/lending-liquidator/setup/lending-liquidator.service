@@ -1,0 +1,13 @@
+[Unit]
+Description=Liquidation bot for the Kintsugi and Interlay lending protocols
+After=network.target
+
+[Service]
+EnvironmentFile=/opt/interbtc/lending-liquidator/.env.kintsugi
+Type=simple
+ExecStart=/usr/local/bin/node /opt/interbtc/lending-liquidator/build/index.js
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
