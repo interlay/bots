@@ -25,3 +25,6 @@ sudo cp -r bots /opt/interbtc/
 
 [ -d /usr/lib/systemd/system/ ] || mkdir /usr/lib/systemd/system/
 sudo cp bots/bots/lending-liquidator/setup/lending-liquidator.service /usr/lib/systemd/system/
+
+# Clean up
+sudo rm -rf bots
