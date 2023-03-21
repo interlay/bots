@@ -8,20 +8,21 @@ npm install --global yarn
 
 # Get the latest bot from `master`
 git clone https://github.com/interlay/bots
-# Overwrite using the user's `.env.kintsugi` file
-cp .env.kintsugi bots/bots/lending-liquidator/.env.kintsugi
 
 # Build
-cd bots/bots/lending-liquidator
+cd bots
+git checkout dan/liquidator-setup
 yarn install
 yarn build
 cd ../
+# Overwrite using the user's `.env.kintsugi` file
+cp .env.kintsugi bots/bots/lending-liquidator/.env.kintsugi
 
 [ -d /opt/interbtc ] || mkdir /opt/interbtc
 # If a previous lending-liquidator exists, remove it
 sudo rm -rf /opt/interbtc/lending-liquidator
 # Copy the newly compiled version
-cp -r lending-liquidator /opt/interbtc/
+sudo cp -r bots /opt/interbtc/
 
 [ -d /usr/lib/systemd/system/ ] || mkdir /usr/lib/systemd/system/
-cp lending-liquidator/setup/lending-liquidator.service /usr/lib/systemd/system/
+sudo cp bots/bots/lending-liquidator/setup/lending-liquidator.service /usr/lib/systemd/system/
